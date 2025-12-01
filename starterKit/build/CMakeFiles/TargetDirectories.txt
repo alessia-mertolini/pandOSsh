@@ -1,0 +1,4 @@
+/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles/MultiPandOS.dir
+/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles/MultiPandOSuRISCV.dir
+/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles/edit_cache.dir
+/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles/rebuild_cache.dir
