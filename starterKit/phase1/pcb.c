@@ -65,15 +65,51 @@ pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
 }
 
 // -->
+
+/*Return TRUE if the PCB pointed to by p has no children. Return FALSE otherwise*/
 int emptyChild(pcb_t* p) {
+    return (list_empty(&p->p_child));
 }
 
-void insertChild(pcb_t* prnt, pcb_t* p) {
+/*Make the PCB pointed to by p a child of the PCB pointed to by prnt.*/
+void insertChild(pcb_t* prnt, pcb_t* p) {       // p.parent punto a un pcb_t, mentre p.sib e p.child somo una lista di pcb_t
+    // considero già fatto INIT_LIST_HEAD su p->p_sib e p->p_child
+    list_add_tail(&p->p_sib, &prnt->p_child);
+    p->p_parent = prnt;
 }
 
+/*Make the first child of the PCB pointed to by p no longer a child of p. Return NULL if initially
+there were no children of p. Otherwise, return a pointer to this removed first child PCB.*/
 pcb_t* removeChild(pcb_t* p) {
+    if (list_empty(&p->p_child)) {
+        return NULL;
+    } else {
+        struct list_head *tmp;
+        pcb_t *child;
+
+        tmp = p->p_child.next;  // first child
+        list_del(tmp);
+
+        child = container_of(tmp, pcb_t, p_sib);
+
+        child->p_parent = NULL;
+        INIT_LIST_HEAD(&child->p_sib);
+
+        return child;
+    }
 }
 
+/*Make the PCB pointed to by p no longer the child of its parent. If the PCB pointed to by p has
+no parent, return NULL; otherwise, return p. Note that the element pointed to by p could be
+in an arbitrary position (i.e. not be the first child of its parent).*/
 pcb_t* outChild(pcb_t* p) {
+    if (p->p_parent == NULL) {
+        return NULL;
+    } else {
+        list_del(&p->p_sib);    // rimuove p qualunque posizione abbia
+        p->p_parent = NULL;
+        INIT_LIST_HEAD(&p->p_sib);
+        return p;
+    }
 }
 // <--
