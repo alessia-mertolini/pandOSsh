@@ -1,0 +1,9 @@
+build/
+*.o
+*.elf
+*.swp
+*.txt
+*.pdf
+*.json
+*.ursicv
+.vscode/ 
