@@ -5,5 +5,5 @@ build/
 *.txt
 *.pdf
 *.json
-*.ursicv
+*.uriscv
 .vscode/ 
