@@ -41,7 +41,7 @@ int insertBlocked(int* semAdd, pcb_t* p) {
         if(sem->s_key == semAdd) { // ho trovato il semaforo semAdd -> SEMAFORO ATTIVO
             p->p_semAdd = semAdd;
             list_add_tail(&p->p_list,&sem->s_procq);
-            return 0; // ? immagino che "tutti gli altri casi" intenda anche questo
+            return 0; 
         }
     }
 
