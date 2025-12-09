@@ -6,4 +6,5 @@ build/
 *.pdf
 *.json
 *.uriscv
-.vscode/ 
+.vscode/
+klog,c
