@@ -18,4 +18,4 @@
 - Gabriele Preti: pcb.c / 2.2 *
 - Mirko Zironi: asl.c / 3.1 *
 
-* := from the given spec file
+(*) := from the given spec file
