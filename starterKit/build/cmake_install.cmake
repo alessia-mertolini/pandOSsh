@@ -1,4 +1,4 @@
-# Install script for directory: /home/grazia/Documents/SO/progettoSO/starterKit
+# Install script for directory: /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/grazia/Documents/SO/progettoSO/starterKit/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

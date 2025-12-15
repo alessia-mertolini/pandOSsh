@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/grazia/Documents/SO/progettoSO/starterKit
+CMAKE_SOURCE_DIR = /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/grazia/Documents/SO/progettoSO/starterKit/build
+CMAKE_BINARY_DIR = /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/MultiPandOS.dir/depend.make
@@ -70,64 +70,64 @@ include CMakeFiles/MultiPandOS.dir/progress.make
 include CMakeFiles/MultiPandOS.dir/flags.make
 
 CMakeFiles/MultiPandOS.dir/klog.c.o: CMakeFiles/MultiPandOS.dir/flags.make
-CMakeFiles/MultiPandOS.dir/klog.c.o: /home/grazia/Documents/SO/progettoSO/starterKit/klog.c
+CMakeFiles/MultiPandOS.dir/klog.c.o: /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/klog.c
 CMakeFiles/MultiPandOS.dir/klog.c.o: CMakeFiles/MultiPandOS.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/MultiPandOS.dir/klog.c.o"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/klog.c.o -MF CMakeFiles/MultiPandOS.dir/klog.c.o.d -o CMakeFiles/MultiPandOS.dir/klog.c.o -c /home/grazia/Documents/SO/progettoSO/starterKit/klog.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/MultiPandOS.dir/klog.c.o"
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/klog.c.o -MF CMakeFiles/MultiPandOS.dir/klog.c.o.d -o CMakeFiles/MultiPandOS.dir/klog.c.o -c /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/klog.c
 
 CMakeFiles/MultiPandOS.dir/klog.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/MultiPandOS.dir/klog.c.i"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/starterKit/klog.c > CMakeFiles/MultiPandOS.dir/klog.c.i
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/klog.c > CMakeFiles/MultiPandOS.dir/klog.c.i
 
 CMakeFiles/MultiPandOS.dir/klog.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/MultiPandOS.dir/klog.c.s"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/starterKit/klog.c -o CMakeFiles/MultiPandOS.dir/klog.c.s
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/klog.c -o CMakeFiles/MultiPandOS.dir/klog.c.s
 
 CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o: CMakeFiles/MultiPandOS.dir/flags.make
-CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o: /home/grazia/Documents/SO/progettoSO/starterKit/phase1/pcb.c
+CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o: /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/pcb.c
 CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o: CMakeFiles/MultiPandOS.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o -MF CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o.d -o CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o -c /home/grazia/Documents/SO/progettoSO/starterKit/phase1/pcb.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o"
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o -MF CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o.d -o CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o -c /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/pcb.c
 
 CMakeFiles/MultiPandOS.dir/phase1/pcb.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/MultiPandOS.dir/phase1/pcb.c.i"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/starterKit/phase1/pcb.c > CMakeFiles/MultiPandOS.dir/phase1/pcb.c.i
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/pcb.c > CMakeFiles/MultiPandOS.dir/phase1/pcb.c.i
 
 CMakeFiles/MultiPandOS.dir/phase1/pcb.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/MultiPandOS.dir/phase1/pcb.c.s"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/starterKit/phase1/pcb.c -o CMakeFiles/MultiPandOS.dir/phase1/pcb.c.s
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/pcb.c -o CMakeFiles/MultiPandOS.dir/phase1/pcb.c.s
 
 CMakeFiles/MultiPandOS.dir/phase1/asl.c.o: CMakeFiles/MultiPandOS.dir/flags.make
-CMakeFiles/MultiPandOS.dir/phase1/asl.c.o: /home/grazia/Documents/SO/progettoSO/starterKit/phase1/asl.c
+CMakeFiles/MultiPandOS.dir/phase1/asl.c.o: /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/asl.c
 CMakeFiles/MultiPandOS.dir/phase1/asl.c.o: CMakeFiles/MultiPandOS.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object CMakeFiles/MultiPandOS.dir/phase1/asl.c.o"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/phase1/asl.c.o -MF CMakeFiles/MultiPandOS.dir/phase1/asl.c.o.d -o CMakeFiles/MultiPandOS.dir/phase1/asl.c.o -c /home/grazia/Documents/SO/progettoSO/starterKit/phase1/asl.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object CMakeFiles/MultiPandOS.dir/phase1/asl.c.o"
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/phase1/asl.c.o -MF CMakeFiles/MultiPandOS.dir/phase1/asl.c.o.d -o CMakeFiles/MultiPandOS.dir/phase1/asl.c.o -c /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/asl.c
 
 CMakeFiles/MultiPandOS.dir/phase1/asl.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/MultiPandOS.dir/phase1/asl.c.i"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/starterKit/phase1/asl.c > CMakeFiles/MultiPandOS.dir/phase1/asl.c.i
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/asl.c > CMakeFiles/MultiPandOS.dir/phase1/asl.c.i
 
 CMakeFiles/MultiPandOS.dir/phase1/asl.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/MultiPandOS.dir/phase1/asl.c.s"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/starterKit/phase1/asl.c -o CMakeFiles/MultiPandOS.dir/phase1/asl.c.s
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/asl.c -o CMakeFiles/MultiPandOS.dir/phase1/asl.c.s
 
 CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o: CMakeFiles/MultiPandOS.dir/flags.make
-CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o: /home/grazia/Documents/SO/progettoSO/starterKit/phase1/p1test.c
+CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o: /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/p1test.c
 CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o: CMakeFiles/MultiPandOS.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o -MF CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o.d -o CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o -c /home/grazia/Documents/SO/progettoSO/starterKit/phase1/p1test.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o"
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o -MF CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o.d -o CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o -c /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/p1test.c
 
 CMakeFiles/MultiPandOS.dir/phase1/p1test.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/MultiPandOS.dir/phase1/p1test.c.i"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/starterKit/phase1/p1test.c > CMakeFiles/MultiPandOS.dir/phase1/p1test.c.i
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/p1test.c > CMakeFiles/MultiPandOS.dir/phase1/p1test.c.i
 
 CMakeFiles/MultiPandOS.dir/phase1/p1test.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/MultiPandOS.dir/phase1/p1test.c.s"
-	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/starterKit/phase1/p1test.c -o CMakeFiles/MultiPandOS.dir/phase1/p1test.c.s
+	riscv64-unknown-elf-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/p1test.c -o CMakeFiles/MultiPandOS.dir/phase1/p1test.c.s
 
 CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o: CMakeFiles/MultiPandOS.dir/flags.make
 CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o: /usr/local/share/uriscv/crtso.S
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building ASM object CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building ASM object CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o"
 	riscv64-unknown-elf-gcc $(ASM_DEFINES) $(ASM_INCLUDES) $(ASM_FLAGS) -o CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o -c /usr/local/share/uriscv/crtso.S
 
 CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.i: cmake_force
@@ -140,7 +140,7 @@ CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.s: cmake_force
 
 CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o: CMakeFiles/MultiPandOS.dir/flags.make
 CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o: /usr/local/share/uriscv/liburiscv.S
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building ASM object CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building ASM object CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o"
 	riscv64-unknown-elf-gcc $(ASM_DEFINES) $(ASM_INCLUDES) $(ASM_FLAGS) -o CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o -c /usr/local/share/uriscv/liburiscv.S
 
 CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.i: cmake_force
@@ -171,7 +171,7 @@ MultiPandOS: CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o
 MultiPandOS: CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o
 MultiPandOS: CMakeFiles/MultiPandOS.dir/build.make
 MultiPandOS: CMakeFiles/MultiPandOS.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking C executable MultiPandOS"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking C executable MultiPandOS"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/MultiPandOS.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -183,6 +183,6 @@ CMakeFiles/MultiPandOS.dir/clean:
 .PHONY : CMakeFiles/MultiPandOS.dir/clean
 
 CMakeFiles/MultiPandOS.dir/depend:
-	cd /home/grazia/Documents/SO/progettoSO/starterKit/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/grazia/Documents/SO/progettoSO/starterKit /home/grazia/Documents/SO/progettoSO/starterKit /home/grazia/Documents/SO/progettoSO/starterKit/build /home/grazia/Documents/SO/progettoSO/starterKit/build /home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles/MultiPandOS.dir/DependInfo.cmake "--color=$(COLOR)"
+	cd /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build /home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles/MultiPandOS.dir/DependInfo.cmake "--color=$(COLOR)"
 .PHONY : CMakeFiles/MultiPandOS.dir/depend
 

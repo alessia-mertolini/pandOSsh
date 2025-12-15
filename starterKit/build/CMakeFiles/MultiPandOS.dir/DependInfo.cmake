@@ -8,8 +8,8 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_ASM
-  "/usr/local/share/uriscv/crtso.S" "/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o"
-  "/usr/local/share/uriscv/liburiscv.S" "/home/grazia/Documents/SO/progettoSO/starterKit/build/CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o"
+  "/usr/local/share/uriscv/crtso.S" "/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/crtso.S.o"
+  "/usr/local/share/uriscv/liburiscv.S" "/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles/MultiPandOS.dir/usr/local/share/uriscv/liburiscv.S.o"
   )
 set(CMAKE_ASM_COMPILER_ID "GNU")
 
@@ -19,10 +19,10 @@ set(CMAKE_ASM_TARGET_INCLUDE_PATH
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/grazia/Documents/SO/progettoSO/starterKit/klog.c" "CMakeFiles/MultiPandOS.dir/klog.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/klog.c.o.d"
-  "/home/grazia/Documents/SO/progettoSO/starterKit/phase1/asl.c" "CMakeFiles/MultiPandOS.dir/phase1/asl.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/phase1/asl.c.o.d"
-  "/home/grazia/Documents/SO/progettoSO/starterKit/phase1/p1test.c" "CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o.d"
-  "/home/grazia/Documents/SO/progettoSO/starterKit/phase1/pcb.c" "CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o.d"
+  "/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/klog.c" "CMakeFiles/MultiPandOS.dir/klog.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/klog.c.o.d"
+  "/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/asl.c" "CMakeFiles/MultiPandOS.dir/phase1/asl.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/phase1/asl.c.o.d"
+  "/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/p1test.c" "CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/phase1/p1test.c.o.d"
+  "/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/phase1/pcb.c" "CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o" "gcc" "CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

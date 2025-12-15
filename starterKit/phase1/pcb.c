@@ -58,21 +58,72 @@ pcb_t* allocPcb() {   //remove an elem from pcbFree list
 }// <--
 
 void mkEmptyProcQ(struct list_head* head) {
+    INIT_LIST_HEAD(head);
 }
 
 int emptyProcQ(struct list_head* head) {
+    return list_empty(head);
 }
 
 void insertProcQ(struct list_head* head, pcb_t* p) {
+    if(list_empty(head)){ //se la lista è vuota -> inserisco direttamente in testa
+        list_add(&p->p_list, head);
+        return;
+    }
+    else{
+        pcb_t* iter; //imposto iteratore per usare macro
+        list_for_each_entry(iter, head, p_list){ //scorro la lista con la macro
+            if(p->p_prio > iter->p_prio){ //punto di inserimento trovato
+                list_add_tail(&p->p_list, &iter->p_list); //effettuo l'inserimento
+                return;
+            }
+        }
+        //se arrivo fino in fondo senza trovare nessuno slot di insermento -> inserisco in coda
+        list_add_tail(&p->p_list, head);
+        return;
+    }
 }
 
 pcb_t* headProcQ(struct list_head* head) {
+    if(list_empty(head)){
+        return NULL;
+    }
+    else{ //ritorno il primo PCB puntato da head. Non rimuovo l'elemento
+        return container_of(head->next, pcb_t, p_list); //utilizzo container_of per ottenere informazioni sul PCB
+    }
 }
 
-pcb_t* removeProcQ(struct list_head* head) {
+pcb_t* removeProcQ(struct list_head* head) { //ottengo informazioni sul primo PCB e lo rimuovo dalla lista
+    if (list_empty(head)){
+        return NULL;
+    }
+    else{
+        pcb_t *first_pcb = container_of(head->next, pcb_t, p_list); //salvo informazioni sul primo PCB
+        list_del(&first_pcb->p_list); //rimuovo il PCB dalla lista
+        return first_pcb;
+    }
 }
 
-pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
+pcb_t* outProcQ(struct list_head* head, pcb_t* p) { //remove mirata di un PCB
+    if (list_empty(head)){
+        return NULL;
+    }
+    else{
+        pcb_t *iter;
+        pcb_t *extract = NULL;
+        list_for_each_entry(iter, head, p_list){ //individuo elemento da rimuovere con iteratore
+            if (iter->p_pid == p->p_pid){
+                extract = iter; //salvo il puntatore all'elemento da rimuovere
+            }
+        }
+        if (extract != NULL){ //faccio un controllo per valore di ritorno
+            list_del(&extract->p_list); //rimovo l'elemento dalla lista
+            return extract; //ritorno l'elemento rimosso
+        }
+        else {
+            return NULL;
+        }
+    }
 }
 
 // -->
