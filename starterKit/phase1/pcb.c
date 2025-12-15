@@ -26,7 +26,7 @@ pcb_t* allocPcb() {   //remove an elem from pcbFree list
 
         tmp = pcbFree_h.next;
         list_del(tmp);
-        p = container_of(tmp, pcb_t, p_list);                       //////////////////////
+        p = container_of(tmp, pcb_t, p_list);
 
         // azzeramento dati: initial values for all
         INIT_LIST_HEAD(&p->p_list);
@@ -45,7 +45,6 @@ pcb_t* allocPcb() {   //remove an elem from pcbFree list
         for (int i=0; i < STATE_GPR_LEN; i++){
             p->p_s.gpr[i] = 0;
         }
-        //memset(&p->p_s, 0, sizeof(state_t));        // metti tutti i valori di state_t a 0
 
         p->p_time = 0;
         p->p_semAdd = NULL;
@@ -102,7 +101,7 @@ pcb_t* removeChild(pcb_t* p) {
         tmp = p->p_child.next;  // first child
         list_del(tmp);
 
-        child = container_of(tmp, pcb_t, p_child);                                //////////////////////
+        child = container_of(tmp, pcb_t, p_child);
 
         child->p_parent = NULL;
         INIT_LIST_HEAD(&child->p_sib);
