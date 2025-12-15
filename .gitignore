@@ -1,0 +1,4 @@
+.vscode
+build/
+phase1/.vscode
+term0.uriscv
