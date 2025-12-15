@@ -14,7 +14,7 @@ void initPcbs() {   // initialize the pcbFree list to contain all elem of pcbFre
 
 void freePcb(pcb_t* p) {    //insert an elem to pcbFree list
     list_add_tail(&p->p_list, &pcbFree_h);
-    //il chiamante si assicura di aver tolto il PCB da tutte le altre strutture dati
+    // !! il chiamante si deve assicurare di aver tolto il PCB da tutte le altre strutture dati
 }
 
 pcb_t* allocPcb() {   //remove an elem from pcbFree list
@@ -25,7 +25,7 @@ pcb_t* allocPcb() {   //remove an elem from pcbFree list
         pcb_t *p;
 
         tmp = pcbFree_h.next;
-        list_del(tmp);
+        list_del(tmp);          // tolgo tmp dalla lista pcbFree_h
         p = container_of(tmp, pcb_t, p_list);
 
         // azzeramento dati: initial values for all
@@ -35,7 +35,7 @@ pcb_t* allocPcb() {   //remove an elem from pcbFree list
 
         p->p_parent = NULL;
         
-        // azzero state_t --> /usr/include/uriscv/types.h
+        // azzero state_t: --> /usr/include/uriscv/types.h
         
         p->p_s.entry_hi = 0;
         p->p_s.cause = 0;
@@ -51,7 +51,7 @@ pcb_t* allocPcb() {   //remove an elem from pcbFree list
         p->p_supportStruct = NULL;
         p->p_prio = 0;
 
-        p->p_pid = next_pid++;
+        p->p_pid = next_pid++;  // incremento pid per il prossimo PCB
 
         return p;
     }
@@ -128,7 +128,7 @@ pcb_t* outProcQ(struct list_head* head, pcb_t* p) { //remove mirata di un PCB
 
 // -->
 
-/*Return TRUE if the PCB pointed to by p has no children. Return FALSE otherwise*/
+/*Return TRUE if the PCB pointed to by p has no children*/
 int emptyChild(pcb_t* p) {
     return (list_empty(&p->p_child));
 }
@@ -140,8 +140,7 @@ void insertChild(pcb_t* prnt, pcb_t* p) {       // p.parent punto a un pcb_t, me
     p->p_parent = prnt;
 }
 
-/*Make the first child of the PCB pointed to by p no longer a child of p. Return NULL if initially
-there were no children of p. Otherwise, return a pointer to this removed first child PCB.*/
+/*Make the first child of the PCB no longer a child of p*/
 pcb_t* removeChild(pcb_t* p) {
     if (list_empty(&p->p_child)) {
         return NULL;
@@ -154,16 +153,14 @@ pcb_t* removeChild(pcb_t* p) {
 
         child = container_of(tmp, pcb_t, p_child);
 
-        child->p_parent = NULL;
+        child->p_parent = NULL;     // isolo il child rimosso
         INIT_LIST_HEAD(&child->p_sib);
 
         return child;
     }
 }
 
-/*Make the PCB pointed to by p no longer the child of its parent. If the PCB pointed to by p has
-no parent, return NULL; otherwise, return p. Note that the element pointed to by p could be
-in an arbitrary position (i.e. not be the first child of its parent).*/
+/*Make the PCB pointed to by p no longer the child of its parent*/
 pcb_t* outChild(pcb_t* p) {
     if (p->p_parent == NULL) {
         return NULL;
