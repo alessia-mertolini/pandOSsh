@@ -19,3 +19,9 @@
 - Mirko Zironi: asl.c / 3.1 *
 
 (*) := from the given spec file
+
+---
+
+#### Modifiche al CMakeLists.txt per funzionamento su Arch
+- rimosso *unknown* da `set(XT_PRG_PREFIX riscv64-elf-)`
+- aggiunto *local* in `set(URISCV_INC /usr/include)`
