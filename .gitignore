@@ -1,4 +1,10 @@
-.vscode
 build/
-phase1/.vscode
-term0.uriscv
+*.o
+*.elf
+*.swp
+*.txt
+*.pdf
+*.json
+*.uriscv
+.vscode/
+klog.c
