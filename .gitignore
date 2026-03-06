@@ -7,4 +7,5 @@ build/
 *.json
 *.uriscv
 .vscode/
+.idea/
 klog.c
