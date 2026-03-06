@@ -22,7 +22,7 @@
 
 ### Work Managment phase2
 - initial [section 2]
-- scheduler [section 3] *Grazia*
+- scheduler [section 3] *Mirko*
     - accumulated CPU time [section 9]
 - exceptions
     - TLB refil events [section 4] (page faults) **(codice pagina 4 dato)**
@@ -31,7 +31,7 @@
     - pass up or die [section 8] **(codice pagina 13 dato)**
         - process termination [section 10]
     - bios data page [section 11]
-- interrupts [section 7] *Mirko*
+- interrupts [section 7] *Grazia*
 - device registers [section 12] *Alessia* + alcune syscall
 
 (*) := from the given spec file
