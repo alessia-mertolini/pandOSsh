@@ -12,7 +12,7 @@
 - Gabriele Preti
 - Mirko Zironi
 
-### Work Managment phase1
+### Work Managment
 - Grazia Lisi: pcb.c / 2.1 + 2.3 *
 - Alessia Mertolini: asl.c / 3.1 *
 - Gabriele Preti: pcb.c / 2.2 *
@@ -20,7 +20,11 @@
 
 (*) := from the given spec file
 
-### Work Managment phase2
+---
+
+### MultiPandOS - Phase 2 -> 23/03
+
+### Work Managment
 - initial [section 2]
 - scheduler [section 3] *Mirko*
     - accumulated CPU time [section 9]
