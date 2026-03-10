@@ -11,6 +11,7 @@
 #include "../headers/const.h"
 #include "../headers/listx.h"
 #include "../headers/types.h"
+#include "./headers/scheduler.h"
 #include <uriscv/liburiscv.h>
 #include <uriscv/types.h>
 
@@ -39,12 +40,12 @@ pcb_t *currentProcess;
 /* Semafori device: uno per ogni sub-device + uno per il Pseudo-clock.
  * Indicizzazione (vedere anche interrupts.c di Grazia):
  *
- *   Linea  3 (Disk)     : indici  0 -  7
+ *   Linea  3 (Disk)     : indici  0 -  7 [priorita' piu' alta]
  *   Linea  4 (Flash)    : indici  8 - 15
  *   Linea  5 (Ethernet) : indici 16 - 23
  *   Linea  6 (Printer)  : indici 24 - 31
- *   Linea  7 Term RX    : indici 32 - 39
- *   Linea  7 Term TX    : indici 40 - 47
+ *   Linea  7 Term TX    : indici 32 - 39
+ *   Linea  7 Term RX    : indici 40 - 47
  *   Pseudo-clock        : indice 48  (PSEUDOCLOCK_SEM_IDX)
  *
  * Formula per linee 3-6:
@@ -126,6 +127,9 @@ int main(void) {
     firstProcess->p_time = 0;
     firstProcess->p_semAdd = NULL;
     firstProcess->p_supportStruct = NULL;
+    
+    // ? firstProcess->p_prio = 0;
+    // ? inizializzazione di p_pid?
 
     /* Inserisce nella Ready Queue e aggiorna il contatore */
     insertProcQ(&readyQueue, firstProcess);

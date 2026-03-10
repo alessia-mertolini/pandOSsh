@@ -33,7 +33,7 @@ static void yield(state_t *savedState);
 /*-- 1 uTLB_RefillHandler – Placeholder - Gestito in Fase 3 -- */
 void uTLB_RefillHandler(void) {
     int prid = getPRID();
-    setENTRYHI(0x80000000);
+    setENTRYHI(KUSEG);
     setENTRYLO(0x00000000);
     TLBWR();
     LDST((state_t *) BIOSDATAPAGE);
@@ -484,10 +484,11 @@ static int getSemaphoreIndex(int *commandAddr) {
         semIdx = (intLineNo - 3) * 8 + DevNo;
     } else{ //terminal device
         int internalOffset = addr % 0x10; //identifica il sub-device corrispondente
-        if(internalOffset == 0x4){ //RECV_COMMAND
+        //! inversione di transm e recv perche' transm ha priorita' maggiore
+        if(internalOffset == 0xC){ //TRANSM_COMMAND
             //32 perché siamo nella linea / e quindi quanto meno siamo dopo 4(linnee) * 8(devices)
             semIdx = 32 + DevNo;
-        } else{ //TRANSM_COMMAND
+        } else{ //RECV_COMMAND
             semIdx = 40 + DevNo;
         }
     }
