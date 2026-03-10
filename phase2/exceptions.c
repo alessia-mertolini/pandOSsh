@@ -106,7 +106,7 @@ void syscallHandler(void) {
             case DOIO:
                 doIO(savedState);
                 break;
-            case GETCPUTIME:
+            case GETTIME:
                 getCPUTime(savedState);
                 break;
             case CLOCKWAIT:
