@@ -101,7 +101,7 @@ void syscallHandler(void) {
             case CREATEPROCESS:
                 createProcess(savedState);    
                 break;
-            case TERMPROCESS:
+            case TERMINATEPROCESS:
                 terminateProcess(savedState);
                 break;
             case PASSEREN:
@@ -113,16 +113,16 @@ void syscallHandler(void) {
             case DOIO:
                 doIO(savedState);
                 break;
-            case GETTIME:
+            case GETCPUTIME:
                 getCPUTime(savedState);
                 break;
-            case CLOCKWAIT:
+            case WAITCLOCK:
                 waitForClock(savedState);
                 break;
             case GETSUPPORTPTR:
                 getSupportData(savedState);
                 break;
-            case GETPROCESSID:
+            case GETPID:
                 getProcessID(savedState);
                 break;
             case YIELD:
