@@ -10,29 +10,15 @@
  *   - tlbExceptionHandler  : Pass Up or Die per eccezioni TLB
  * ========================================================================= */
 
- #include "../../headers/types.h"
+#include "../../headers/types.h"
 #include "../../headers/const.h"
+#include "./scheduler.h"
+#include "./constants.h"
+#include "../../phase1/headers/pcb.h"
+#include "../../phase1/headers/asl.h"
 
-//Costanti
-//---------
-//Codici di eccezione rilevanti
-#define EXC_SYSCALL 8 //ECALL da M-mode
-#define EXC_BREAKPOINT 9 //EBREAK
-#define EXC_SYSCALL_U 11 //ECALL da U-mode
-#define EXC_TLB_MIN 24 //Prima eccezione TLB
-#define EXC_TLB_MAX 28 //Ultima eccezione TLB
-#define PSEUDOCLOCK_SEM_IDX 48 //Indice del semaforo Pseudo-clock nell'array
-#define WORD_SIZE 4 //Dimensione di una parola per incrementare il PC
-//Macro
-//------
-#define IS_KERNEL_MODE(status) (((status) & MSTATUS_MPP_MASK) == MSTATUS_MPP_M) //macro consigliata per la modalità del processore
-/*
- * estrae il codice di eccezione dal registro cause. Si fa un And Bit a Bit tra il contenuto del registro cause e GETEXECCODE.
- * Lo shift è necessario per ottenenere un dato DA 0000 0000 0010 0000 A 0000 0000 0000 1000
-*/
-#define CAUSE_EXCCODE(cause) (((cause) & GETEXECCODE) >> CAUSESHIFT) // Estrae il codice di eccezione dal registro
-//si fa un And bit a bit
-#define CAUSE_IS_INT(cause) ((cause) & 0x80000000) //Controlla se l'eccezione è un interrupt, rappresentato dal 31-esimo bit impostato a 1
+#include <uriscv/liburiscv.h>
+#include <uriscv/types.h>
 
 //Prototipi funzioni di supporto
 //-------

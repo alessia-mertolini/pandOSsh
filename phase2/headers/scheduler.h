@@ -35,7 +35,7 @@ extern struct list_head readyQueue;
 extern pcb_t *currentProcess;
 
 /* Array di semafori per i device (indicizzato, vedere SEMDEVLEN in const.h)
- * Ultimo elemento (indice PSEUDOCLOCKIDX) = semaforo Pseudo-clock */
+ * Ultimo elemento (indice PSEUDOCLOCK_SEM_IDX) = semaforo Pseudo-clock */
 extern int deviceSemaphores[SEMDEVLEN];
 
 /* -----------------------------------------------------------------------

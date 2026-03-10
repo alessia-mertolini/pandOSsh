@@ -43,9 +43,9 @@ pcb_t *currentProcess;
  *   Linea  4 (Flash)    : indici  8 - 15
  *   Linea  5 (Ethernet) : indici 16 - 23
  *   Linea  6 (Printer)  : indici 24 - 31
- *   Linea  7 Term TX    : indici 32 - 39
- *   Linea  7 Term RX    : indici 40 - 47
- *   Pseudo-clock        : indice 48  (PSEUDOCLOCKIDX)
+ *   Linea  7 Term RX    : indici 32 - 39
+ *   Linea  7 Term TX    : indici 40 - 47
+ *   Pseudo-clock        : indice 48  (PSEUDOCLOCK_SEM_IDX)
  *
  * Formula per linee 3-6:
  *   idx = (line - 3) * DEVPERINT + devNo

@@ -14,13 +14,6 @@
  * ========================================================================= */
 
 #include "./exceptions.h"
-#include "./scheduler.h"
-#include "./headers/constants.h"
-#include "../phase1/headers/pcb.h"
-#include "../phase1/headers/asl.h"
-
-#include <uriscv/liburiscv.h>
-#include <uriscv/types.h>
 
 //Prototipi delle SysCall visibili SOLO in questo file "exceptions.c"
 //-------
@@ -62,7 +55,7 @@ void exceptionHandler(void) {
     if (CAUSE_IS_INT(cause)) { //L'eccezione in questione è un INTERRUPT
         interruptHandler();
 
-    } else if (excCode == EXC_SYSCALL || excCode == EXC_SYSCALL_U) { //SYSCALL
+    } else if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) { //SYSCALL
         syscallHandler();
 
     } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) { //Eccezioni TLB (codici 24-28)
@@ -86,7 +79,7 @@ void syscallHandler(void) {
 
     int syscallNum = (int)savedState->reg_a0;
     int kernelMode = IS_KERNEL_MODE(savedState->status);
-    savedState->pc_epc += WORD_SIZE; //Avanza il PC di 4: evita il re-eseguimento della SYSCALL al ritorno
+    savedState->pc_epc += WORDLEN; //Avanza il PC di 4: evita il re-eseguimento della SYSCALL al ritorno
 
     //gestione delle systemcall
     if (syscallNum < 0) { //caso b1) - Syscall con numero < 0 vengono dal Nucleus => Pass Up or Die
@@ -101,7 +94,7 @@ void syscallHandler(void) {
             case CREATEPROCESS:
                 createProcess(savedState);    
                 break;
-            case TERMINATEPROCESS:
+            case TERMPROCESS:
                 terminateProcess(savedState);
                 break;
             case PASSEREN:
@@ -116,13 +109,13 @@ void syscallHandler(void) {
             case GETCPUTIME:
                 getCPUTime(savedState);
                 break;
-            case WAITCLOCK:
+            case CLOCKWAIT:
                 waitForClock(savedState);
                 break;
             case GETSUPPORTPTR:
                 getSupportData(savedState);
                 break;
-            case GETPID:
+            case GETPROCESSID:
                 getProcessID(savedState);
                 break;
             case YIELD:
@@ -490,7 +483,7 @@ static int getSemaphoreIndex(int *commandAddr) {
         //ogni linea continene 8 devices + sommiamo DevNo per il device correttol
         semIdx = (intLineNo - 3) * 8 + DevNo;
     } else{ //terminal device
-        int internalOffset = offset - regBase; //identifica il sub-device corrispondente
+        int internalOffset = addr % 0x10; //identifica il sub-device corrispondente
         if(internalOffset == 0x4){ //RECV_COMMAND
             //32 perché siamo nella linea / e quindi quanto meno siamo dopo 4(linnee) * 8(devices)
             semIdx = 32 + DevNo;
