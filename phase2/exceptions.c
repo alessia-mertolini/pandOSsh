@@ -14,6 +14,8 @@
  * ========================================================================= */
 
 #include "./headers/exceptions.h"
+#include "./print.c"
+#include <uriscv/const.h>
 
 //Prototipi delle SysCall visibili SOLO in questo file "exceptions.c"
 //-------
@@ -53,23 +55,24 @@ void *memcpy(void *dst, const void *src, unsigned int n) {
  * Legge il campo cause dallo stato salvato per determinare il tipo di
  * eccezione e smista al gestore appropriato */
 void exceptionHandler(void) {
-    // Recupera lo stato salvato dal BIOS Data Page per il processore 0
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
+    // unsigned int cause = savedState->cause;
 
-    unsigned int cause = savedState->cause;
-    unsigned int excCode = CAUSE_EXCCODE(cause);
+    unsigned int cause = getCAUSE();
 
-    if (CAUSE_IS_INT(cause)) { //L'eccezione in questione è un INTERRUPT
+    if (CAUSE_IS_INT(cause)) {
         interruptHandler();
+    } else {
+        unsigned int excCode = CAUSE_EXCCODE(cause); // ← calcolato solo se non interrupt
+        if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) {
+            syscallHandler();
+        } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
+            tlbExceptionHandler();
+        } else {
+            termprint_direct("chiamo programTrap");
 
-    } else if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) { //SYSCALL
-        syscallHandler();
-
-    } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) { //Eccezioni TLB (codici 24-28)
-        tlbExceptionHandler();
-
-    } else { // Program Trap (codici 0-7, 9, 10, 12-23)
-        programTrapHandler();
+            programTrapHandler();
+        }
     }
 }
 
@@ -83,7 +86,6 @@ void exceptionHandler(void) {
  *      3 - qualsiasi altro valore non gestito => simula PRIVINSTR */
 void syscallHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
-
     int syscallNum = (int)savedState->reg_a0;
     int kernelMode = IS_KERNEL_MODE(savedState->status);
     savedState->pc_epc += WORDLEN; //Avanza il PC di 4: evita il re-eseguimento della SYSCALL al ritorno
@@ -187,6 +189,7 @@ static void createProcess(state_t *savedState) {
     newPcb->p_supportStruct = supportPtr;
     newPcb->p_time = 0;
     newPcb->p_semAdd = NULL;
+    // * il pid e' gestito automaticamente da allocPcb()
     //Inserimento nella gerarchia e nella ready queue
     insertChild(currentProcess, newPcb);
     insertProcQ(&readyQueue, newPcb);
@@ -258,7 +261,12 @@ static void passeren(state_t *savedState) {
         currentProcess->p_s = *savedState;
         //Inserisce il processo nell'ASL sul semaforo indicato
         insertBlocked(semAddr, currentProcess);
-        softBlockCount++;
+        //incrementa softBlockCount solo per semafori device/pseudo-clock
+        int *base = &deviceSemaphores[0];
+        int *end  = &deviceSemaphores[SEMDEVLEN];
+        if (semAddr >= base && semAddr < end) {
+            softBlockCount++;
+        }
         currentProcess = NULL;
         scheduler();
     } else {
@@ -286,7 +294,11 @@ static void verhogen(state_t *savedState) {
         pcb_t *unblocked = removeBlocked(semAddr);
         if (unblocked != NULL) {
             unblocked->p_semAdd = NULL;
-            softBlockCount--;
+            int *base = &deviceSemaphores[0];
+            int *end  = &deviceSemaphores[SEMDEVLEN];
+            if (semAddr >= base && semAddr < end) {
+                softBlockCount--;
+            }
             insertProcQ(&readyQueue, unblocked);
         }
     }

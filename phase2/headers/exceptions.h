@@ -47,9 +47,6 @@ static void updateCPUTime(void);
  * controllando l'offset all'interno del device register*/
 static int getSemaphoreIndex(int *commandAddr);
 
-/* Placeholder TLB-Refill per la Fase 2
-* Verrà sovrascritto dal Support Level (Fase 3) */
-void uTLB_RefillHandler(void);
 
 /* Entry point per tutte le eccezioni (escluso TLB-Refill).
  * Viene registrato nel Pass Up Vector durante l'inizializzazione del Nucleus

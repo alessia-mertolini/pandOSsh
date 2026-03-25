@@ -76,9 +76,6 @@
 /* Indirizzo base dell'area dei Device Registers (spec sezione 12) */
 #define DEV_REG_BASE     0x10000054U
 
-/* Dimensione in byte di un singolo device register block (4 campi × 4 byte) */
-#define DEV_REG_SIZE     0x10U   /* 16 byte per singolo device */
-
 /* Dimensione in byte di tutti gli 8 device su una interrupt line */
 #define DEV_LINE_SIZE    (DEVPERINT * DEV_REG_SIZE)  /* 8 * 16 = 0x80 */
 
@@ -98,14 +95,6 @@
  */
 #define INT_BITMAP_WORD(intLineNo) \
     (*((volatile unsigned int *)(INT_BITMAP_BASE + ((intLineNo - 3) * WORDLEN))))
-
-/*
- * Calcola l'indirizzo base del device register dato intLineNo (3-7) e devNo (0-7).
- * Formula diretta dalla spec sezione 7.1:
- *   devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
- */
-#define DEV_REG_ADDR(intLineNo, devNo) \
-    (DEV_REG_BASE + (((intLineNo) - 3) * DEV_LINE_SIZE) + ((devNo) * DEV_REG_SIZE))
 
 /*
  * Comando ACK da scrivere nel campo command del device register

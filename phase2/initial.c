@@ -14,6 +14,7 @@
 #include "./headers/scheduler.h"
 #include <uriscv/liburiscv.h>
 #include <uriscv/types.h>
+#include "print.c"
 
 /* -----------------------------------------------------------------------
  * Dichiarazione della funzione test (fornita esternamente per il debug)
@@ -73,6 +74,7 @@ int main(void) {
 
     /* Handler eccezioni generali: funzione placeholder in exceptions.c */
     extern void exceptionHandler(void);
+
     passupvector->exception_handler = (memaddr)exceptionHandler;
     passupvector->exception_stackPtr = KERNELSTACK;
 
@@ -118,7 +120,7 @@ int main(void) {
      *   - PC = indirizzo di test
      */
     firstProcess->p_s.mie = MIE_ALL;
-    firstProcess->p_s.status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
+    firstProcess->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M;
     RAMTOP(firstProcess->p_s.reg_sp);   /* SP = top della RAM               */
     firstProcess->p_s.pc_epc  = (memaddr)test;
 
