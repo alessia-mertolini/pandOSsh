@@ -9,3 +9,5 @@ build/
 .vscode/
 .idea/
 klog.c
+CMakeLists.txt
+

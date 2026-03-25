@@ -22,43 +22,9 @@
 #include <uriscv/arch.h>
 
 #include "interrupts.h"
+#include "scheduler.h"
 
 // VARIABILI GLOBALI ESTERNE --> variabili DA FARE in initial.c
-
-/*  TODO:
-- initial.c deve definire: 
-   processCount, softBlockCount, readyQueue, currentProcess, semDevices[(SEMDEVLEN in const.h)], todStart
-- scheduler.c deve definire scheduler()
-- todStart va aggiornato ogni volta che lo scheduler dispatcha un processo (necessario per updateProcessTime())
-*/
-
-extern int processCount;            // Numero di processi attivi (started but not terminated)
-extern int softBlockCount;          // Numero di processi bloccati su I/O o timer (soft-blocked)
-extern struct list_head readyQueue; // Coda dei processi pronti (ready queue), gestita con le macro di listx.h
-extern pcb_t *currentProcess;       // Puntatore al PCB del processo attualmente in esecuzione (NULL se nessuno)
-
-/*
- * Array di semafori dei device, dimensione SEMDEVLEN=49 --> PRESO da const.h line 16
- * Schema (definito in interrupts.h):
- *   [0-7]   disk, [8-15] flash, [16-23] ethernet, [24-31] printer,
- *   [32-39] termTX, [40-47] termRX, [48] pseudo-clock
- */
-extern int semDevices[SEMDEVLEN];       // -- DA CREARE QUI O SU INITIAL.C  ???
-
-/*
- * Timestamp TOD (Time Of Day) registrato all'inizio del time slice corrente.
- * Usato per calcolare il tempo CPU accumulato dal processo corrente.
- * <-- DA IMPLEMENTARE ESTERNAMENTE in initial.c / scheduler.c: cpu_t todStart;
- *     Va aggiornato ogni volta che lo scheduler dispatcha un processo.
- */
-extern cpu_t todStart;
-
-/*
- * scheduler() - Definita in scheduler.c  <-- DA IMPLEMENTARE ESTERNAMENTE
- * Seleziona il prossimo processo dalla ready queue e lo dispatcha.
- * Viene chiamata quando il Current Process viene bloccato o prelazionato.
- */
-extern void scheduler();
 
 
 // FUNZIONI INTERNE
@@ -81,7 +47,7 @@ static inline state_t *getSavedExceptionState() {
  * dall'inizio del suo time slice corrente (misurato con il TOD clock).
  *
  * Il TOD clock conta verso l'alto in microsecondi dal boot.
- * todStart viene impostato dallo scheduler ogni volta che dispatcha un processo.
+ * start_tod viene impostato dallo scheduler ogni volta che dispatcha un processo.
  *
  * Questa funzione va chiamata prima di bloccare o prelazionare il processo.
  */
@@ -90,9 +56,9 @@ static void updateProcessTime() {
         cpu_t now;
         STCK(now); /* legge il valore corrente del TOD clock */
         /* Accumula il tempo trascorso dall'inizio del quantum corrente */
-        currentProcess->p_time += (now - todStart);
-        /* Aggiorna todStart per il prossimo intervallo */
-        STCK(todStart);
+        currentProcess->p_time += (now - start_tod);
+        /* Aggiorna start_tod per il prossimo intervallo */
+        STCK(start_tod);
     }
 }
 
@@ -272,13 +238,13 @@ static void handleIntervalTimer() {
      * Nota: il semaforo pseudo-clock parte da 0 (sincrono), quindi dopo NSYS7
      * vale -N dove N è il numero di processi in attesa.
      */
-    while (semDevices[SEMDEV_PSEUDOCLK] <= 0) {
+    while (deviceSemaphores[SEMDEV_PSEUDOCLK] <= 0) {
         /*
          * verhogenSemDevice gestisce anche l'aggiornamento di softBlockCount,
          * il movimento del PCB nella ready queue, e il deposito dello status.
          * Per il pseudo-clock lo status è 0 (nessun device).
          */
-        unblocked = verhogenSemDevice(&semDevices[SEMDEV_PSEUDOCLK], 0);
+        unblocked = verhogenSemDevice(&deviceSemaphores[SEMDEV_PSEUDOCLK], 0);
 
         if (unblocked == NULL) {
             /*
@@ -381,7 +347,7 @@ static void handleDeviceInterrupt(int intLineNo) {
             *transmCommand = ACK;
 
             /* Step 5-6: V sul semaforo TX del terminale + sblocca processo */
-            verhogenSemDevice(&semDevices[SEMDEV_TERMTX_BASE + devNo], statusCode);
+            verhogenSemDevice(&deviceSemaphores[SEMDEV_TERMTX_BASE + devNo], statusCode);
 
         } else if ((*recvStatus & 0xFF) == CHARRECV) {
             /* --- RX completata (priorità bassa rispetto a TX) --- */
@@ -393,7 +359,7 @@ static void handleDeviceInterrupt(int intLineNo) {
             *recvCommand = ACK;
 
             /* Step 5-6: V sul semaforo RX del terminale + sblocca processo */
-            verhogenSemDevice(&semDevices[SEMDEV_TERMRX_BASE + devNo], statusCode);
+            verhogenSemDevice(&deviceSemaphores[SEMDEV_TERMRX_BASE + devNo], statusCode);
         }
         /*
          * Nota: se né TX né RX è in stato completed, potrebbe essere un interrupt
@@ -427,13 +393,13 @@ static void handleDeviceInterrupt(int intLineNo) {
         /*
          * Step 5-6: V sul semaforo del device e sblocca il processo in attesa.
          *
-         * Calcola l'indice del semaforo nell'array semDevices[]:
+         * Calcola l'indice del semaforo nell'array deviceSemaphores[]:
          *   (intLineNo - 3) * DEVPERINT + devNo
          * Esempio: disk device 2 → (3-3)*8 + 2 = 2
          *          printer device 5 → (6-3)*8 + 5 = 29
          */
         int semIdx = (intLineNo - 3) * DEVPERINT + devNo;
-        verhogenSemDevice(&semDevices[semIdx], statusCode);
+        verhogenSemDevice(&deviceSemaphores[semIdx], statusCode);
     }
 
     /*
