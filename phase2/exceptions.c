@@ -69,8 +69,6 @@ void exceptionHandler(void) {
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
             tlbExceptionHandler();
         } else {
-            termprint_direct("chiamo programTrap");
-
             programTrapHandler();
         }
     }
