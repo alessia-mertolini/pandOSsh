@@ -16,13 +16,7 @@
  *               - handleDeviceInterrupt(intLineNo) per line 3-7
  */
 
-#include "../headers/types.h"
-#include "../headers/const.h"
-#include <uriscv/liburiscv.h>
-#include <uriscv/arch.h>
-
-#include "interrupts.h"
-#include "scheduler.h"
+#include "./headers/interrupts.h"
 
 // VARIABILI GLOBALI ESTERNE --> variabili DA FARE in initial.c
 
@@ -175,7 +169,7 @@ static void handlePLT() {
      * Usiamo il valore massimo (0xFFFFFFFF) per non generare subito un altro interrupt.
      * Lo scheduler caricherà il valore corretto (TIMESLICE) al prossimo dispatch.
      */
-    setTIMER(PLT_ACK_VALUE);        // PLT_ACK_VALUE = 0xFFFFFFFF
+    setTIMER(MIE_ALL);        // MIE_ALL = 0xFFFFFFFF
 
     /*
      * Step 2: Copia il processor state al momento dell'interrupt nel PCB.

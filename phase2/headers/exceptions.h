@@ -16,6 +16,7 @@
 #include "./constants.h"
 #include "../../phase1/headers/pcb.h"
 #include "../../phase1/headers/asl.h"
+#include "./interrupts.h"
 
 #include <uriscv/liburiscv.h>
 #include <uriscv/types.h>

@@ -13,7 +13,7 @@
  *   - scheduler.h  : funzione scheduler() chiamata dopo syscall bloccanti
  * ========================================================================= */
 
-#include "./exceptions.h"
+#include "./headers/exceptions.h"
 
 //Prototipi delle SysCall visibili SOLO in questo file "exceptions.c"
 //-------
@@ -29,15 +29,6 @@ static void getProcessID(state_t *savedState);
 static void yield(state_t *savedState);
 
 /*-- INIZIO DELLA DEFINIZIONE DEI MODULI --*/
-
-/*-- 1 uTLB_RefillHandler – Placeholder - Gestito in Fase 3 -- */
-void uTLB_RefillHandler(void) {
-    int prid = getPRID();
-    setENTRYHI(KUSEG);
-    setENTRYLO(0x00000000);
-    TLBWR();
-    LDST((state_t *) BIOSDATAPAGE);
-}
 
 /* -- 2 exceptionHandler – Dispatcher principale delle eccezioni --
  * Entry point chiamato dall'hardware dopo ogni eccezione ad eccezzione di TLB-Refill

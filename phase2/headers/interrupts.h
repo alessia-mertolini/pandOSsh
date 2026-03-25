@@ -12,6 +12,13 @@
  */
 
 #include "../../headers/types.h"
+#include "../../headers/const.h"
+#include "../../headers/types.h"
+#include "./scheduler.h"
+#include "../../phase1/headers/asl.h"
+
+#include <uriscv/liburiscv.h>
+#include <uriscv/arch.h>
 
 /* ===========================================================================
  * SCHEMA DEI SEMAFORI DEI DEVICE (array semDevices[SEMDEVLEN], SEMDEVLEN=49)

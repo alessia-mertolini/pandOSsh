@@ -118,7 +118,7 @@ int main(void) {
      *   - PC = indirizzo di test
      */
     firstProcess->p_s.mie = MIE_ALL;
-    firstProcess->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M;
+    firstProcess->p_s.status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     RAMTOP(firstProcess->p_s.reg_sp);   /* SP = top della RAM               */
     firstProcess->p_s.pc_epc  = (memaddr)test;
 
@@ -128,7 +128,7 @@ int main(void) {
     firstProcess->p_semAdd = NULL;
     firstProcess->p_supportStruct = NULL;
     
-    // ? firstProcess->p_prio = 0;
+    firstProcess->p_prio = PROCESS_PRIO_LOW;
     // ? inizializzazione di p_pid?
 
     /* Inserisce nella Ready Queue e aggiorna il contatore */
