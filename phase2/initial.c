@@ -131,7 +131,6 @@ int main(void) {
     firstProcess->p_supportStruct = NULL;
     
     firstProcess->p_prio = PROCESS_PRIO_LOW;
-    // ? inizializzazione di p_pid?
 
     /* Inserisce nella Ready Queue e aggiorna il contatore */
     insertProcQ(&readyQueue, firstProcess);
