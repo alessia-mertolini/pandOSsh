@@ -30,6 +30,22 @@ static void yield(state_t *savedState);
 
 /*-- INIZIO DELLA DEFINIZIONE DEI MODULI --*/
 
+/* memcpy minimale – necessaria perché compiliamo con -nostdlib.
+ * GCC genera chiamate implicite a memcpy per struct assignment (es. p->s = *q).
+ * Questa implementazione byte-by-byte è sufficiente per gli struct allineati
+ * usati nel Nucleus (state_t, support_t). */
+void *memcpy(void *dst, const void *src, unsigned int n) {
+    unsigned char *d = (unsigned char *)dst;
+    const unsigned char *s = (const unsigned char *)src;
+    while (n--) *d++ = *s++;
+    return dst;
+}
+
+/* -- 1 uTLB_RefillHandler –
+ * NON definita qui: il p2test.c fornisce la propria implementazione.
+ * In Phase 3 sarà definita nel modulo vmSupport.c.
+ * La dichiarazione extern è già nel Pass Up Vector di initial.c. -- */
+
 /* -- 2 exceptionHandler – Dispatcher principale delle eccezioni --
  * Entry point chiamato dall'hardware dopo ogni eccezione ad eccezzione di TLB-Refill
  * Lo stato del processore al momento dell'eccezione è già stato salvato
