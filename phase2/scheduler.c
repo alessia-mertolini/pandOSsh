@@ -23,9 +23,7 @@
  *     currentProcess->p_time += (now - start_tod);
  * ----------------------------------------------------------------------- */
 
-#include "scheduler.h"
-#include "pcb.h"
-#include <uriscv/liburiscv.h>
+#include "./headers/scheduler.h"
 
 /* -----------------------------------------------------------------------
  * Definizione di start_tod (dichiarata extern in scheduler.h)
