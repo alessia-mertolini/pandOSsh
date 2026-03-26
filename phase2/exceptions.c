@@ -252,19 +252,41 @@ static void doIO(state_t *savedState) {
     int *commandAddr = (int *) savedState->reg_a1;
     int commandValue = (int) savedState->reg_a2;
     int semIdx = getSemaphoreIndex(commandAddr);
+
     termprint_direct("[doIO] semIdx=");
     print_hex((unsigned int)semIdx);
-    termprint_direct(" cmd=");
+    termprint_direct(" cmdAddr=");
+    print_hex((unsigned int)commandAddr);
+    termprint_direct(" cmdVal=");
     print_hex((unsigned int)commandValue);
     termprint_direct("\n");
+
+    /* 1. Salva stato e tempo del processo corrente */
     updateCPUTime();
     currentProcess->p_s = *savedState;
+
+    /* 2. Blocca il processo sul semaforo del device */
     deviceSemaphores[semIdx]--;
     insertBlocked(&deviceSemaphores[semIdx], currentProcess);
     softBlockCount++;
+
+    termprint_direct("[doIO] blocked pid=");
+    print_hex((unsigned int)currentProcess->p_pid);
+    termprint_direct(" sem=");
+    print_hex((unsigned int)deviceSemaphores[semIdx]);
+    termprint_direct("\n");
+
+    /* 3. Solo ORA togli il currentProcess */
     currentProcess = NULL;
+
+    /* 4. Scrivi il comando nel device register per avviare l'operazione */
     *commandAddr = commandValue;
-    termprint_direct("[doIO] BLOCK -> scheduler\n");
+
+    termprint_direct("[doIO] post-write bitmap=");
+    print_hex(*((volatile unsigned int *)CDEV_BITMAP_ADDR(IL_TERMINAL)));
+    termprint_direct("\n");
+
+    /* 5. Chiama lo scheduler */
     scheduler();
 }
 
