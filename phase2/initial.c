@@ -100,7 +100,7 @@ int main(void) {
     /* ------------------------------------------------------------------
      * 4. Carica l'Interval Timer con 100ms (Pseudo-clock tick)
      * ------------------------------------------------------------------ */
-    LDIT(PSECOND);
+    LDIT(PSECOND); //qui viene settato impostato il time slice che poi viene usato in tutto il SO
 
     /* ------------------------------------------------------------------
      * 5. Istanzia il primo processo e lo inserisce nella Ready Queue
@@ -125,10 +125,10 @@ int main(void) {
     firstProcess->p_s.pc_epc  = (memaddr)test;
 
     /* Campi PCB aggiuntivi (già azzerati da allocPcb, ma espliciti per chiarezza) */
-    firstProcess->p_parent = NULL;
-    firstProcess->p_time = 0;
-    firstProcess->p_semAdd = NULL;
-    firstProcess->p_supportStruct = NULL;
+    // firstProcess->p_parent = NULL;
+    // firstProcess->p_time = 0;
+    // firstProcess->p_semAdd = NULL;
+    // firstProcess->p_supportStruct = NULL;
     
     firstProcess->p_prio = PROCESS_PRIO_LOW;
 

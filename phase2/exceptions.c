@@ -56,9 +56,9 @@ void *memcpy(void *dst, const void *src, unsigned int n) {
  * eccezione e smista al gestore appropriato */
 void exceptionHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
-    // unsigned int cause = savedState->cause;
+    unsigned int cause = savedState->cause;
 
-    unsigned int cause = getCAUSE();
+    //unsigned int cause = getCAUSE();
 
     if (CAUSE_IS_INT(cause)) {
         interruptHandler();
@@ -486,10 +486,10 @@ static void updateCPUTime(void) {
 //Bisogna quindi trovare dove inizia il devide register che lo contiene
 static int getSemaphoreIndex(int *commandAddr) {
     unsigned int addr = (unsigned int) commandAddr; //campo command dentro a un device register, non all'inizio del device register
-    unsigned int regBase = addr & ~0xF; //inizio del device register. Prendo l'indirizzo e faccio una AND bit-a-bit trovando l'indirizzo corretto
+    // unsigned int regBase = addr & ~0xF; //inizio del device register. Prendo l'indirizzo e faccio una AND bit-a-bit trovando l'indirizzo corretto
 
     //START_DEVREG: inizio del primo device register in assoluto
-    unsigned int offset = regBase - START_DEVREG; //otteniamo quindi posizione relativa di questo device register nell'area di memoria dedicata ai dispositivi
+    unsigned int offset = addr - START_DEVREG; //otteniamo quindi posizione relativa di questo device register nell'area di memoria dedicata ai dispositivi
     int DevNo = (int)((offset % 0x80) / 0x10); //0x10:= dimensione di un device register. Così otteniamo il numero del device
     // int IntLineNo = ((offset - (DevNo * 0x10)) / 0x80) + 3; // formula inversa del del calcolo del devAddrBase
     int intLineNo = (int)(offset / 0x80) + 3; //la divisione intera per 0x80 da il blocco. Viene aggiunto 3 perché le interrupt line partono da 3
@@ -500,7 +500,8 @@ static int getSemaphoreIndex(int *commandAddr) {
         //ogni linea continene 8 devices + sommiamo DevNo per il device correttol
         semIdx = (intLineNo - 3) * 8 + DevNo;
     } else{ //terminal device
-        int internalOffset = addr % 0x10; //identifica il sub-device corrispondente
+        unsigned int devRegStart = START_DEVREG + ((intLineNo - 3) * 0x80) + (DevNo * 0x10);
+        int internalOffset = addr - devRegStart;
         //! inversione di transm e recv perche' transm ha priorita' maggiore
         if(internalOffset == 0xC){ //TRANSM_COMMAND
             //32 perché siamo nella linea / e quindi quanto meno siamo dopo 4(linnee) * 8(devices)

@@ -101,9 +101,7 @@
  * per acknowledgare un interrupt pendente (spec sezione 7.1, step 3).
  * NOTA: se ACK non è già definito in uriscv/const.h usare 1.
  */
-#ifndef ACK
 #define ACK 1
-#endif
 
 /* ===========================================================================
  * DICHIARAZIONE DELLA FUNZIONE PUBBLICA

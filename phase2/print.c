@@ -8,6 +8,7 @@
 #define PRINTCHR_CMD    2
 #define TRANSMITTED     5
 #define STATUSMASK      0xFF
+#include "../headers/const.h"
 
 /* -------------------------------------------------------------------------
  * termprint_direct() - stampa SENZA usare SYSCALL

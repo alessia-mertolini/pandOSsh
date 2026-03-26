@@ -297,7 +297,8 @@ static void handleDeviceInterrupt(int intLineNo) {
      * Formula dalla spec sezione 7.1:
      *   devAddrBase = 0x10000054 + ((IntLineNo - 3) * 0x80) + (DevNo * 0x10)
      */
-    memaddr devRegAddr = DEV_REG_ADDR(intLineNo, devNo);
+    int actualLine = intLineNo + (DEV_IL_START - 3);  // converte 3-7 → 17-21
+    memaddr devRegAddr = DEV_REG_ADDR(actualLine, devNo);
 
     if (intLineNo == INTLINE_TERM) {
         /*
