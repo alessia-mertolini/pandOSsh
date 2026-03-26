@@ -18,7 +18,7 @@
  * Se questa funzione non stampa nulla → problema in initial.c/scheduler.
  * Se stampa → il kernel parte, il problema è nelle SYSCALL o negli interrupt.
  * ------------------------------------------------------------------------- */
-static void termprint_direct(char *str) {
+void termprint_direct(char *str) {
     volatile unsigned int *status  = (unsigned int *)(TERM0ADDR + TERM_TRANSM_STATUS);
     volatile unsigned int *command = (unsigned int *)(TERM0ADDR + TERM_TRANSM_CMD);
     unsigned int stat;
@@ -53,4 +53,16 @@ static void termprint_direct(char *str) {
 
     /* Ripristina gli interrupt */
     setSTATUS(oldStatus);
+}
+void print_hex(unsigned int n) {
+    char hex_chars[] = "0123456789ABCDEF";
+    char buffer[11]; // "0x" + 8 cifre + terminatore
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    for (int i = 9; i >= 2; i--) {
+        buffer[i] = hex_chars[n & 0xF];
+        n >>= 4;
+    }
+    buffer[10] = '\0';
+    termprint_direct(buffer);
 }

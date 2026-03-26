@@ -21,6 +21,7 @@ add_executable(MultiPandOS
     phase2/interrupts.c
     phase2/scheduler.c
     phase2/p2test.c
+    phase2/print.c
     ${URISCV_SRC}/crtso.S
     ${URISCV_SRC}/liburiscv.S
 )

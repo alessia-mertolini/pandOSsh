@@ -17,6 +17,7 @@
  */
 
 #include "./headers/interrupts.h"
+#include "./print.h"
 
 // VARIABILI GLOBALI ESTERNE --> variabili DA FARE in initial.c
 

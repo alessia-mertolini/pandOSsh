@@ -14,7 +14,7 @@
 #include "./headers/scheduler.h"
 #include <uriscv/liburiscv.h>
 #include <uriscv/types.h>
-#include "print.c"
+#include "print.h"
 
 /* -----------------------------------------------------------------------
  * Dichiarazione della funzione test (fornita esternamente per il debug)

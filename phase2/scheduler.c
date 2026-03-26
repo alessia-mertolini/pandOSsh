@@ -53,7 +53,7 @@ void scheduler(void) {
 
         /* Dispatch: carica il processor state del processo.
          * LDST non ritorna. */
-        LDST(&(currentProcess->p_s));
+        LDST(&(currentProcess->p_s)); 
         /*UNREACHABLE*/
     }
 

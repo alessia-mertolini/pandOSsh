@@ -14,7 +14,7 @@
  * ========================================================================= */
 
 #include "./headers/exceptions.h"
-#include "./print.c"
+#include "./print.h"
 #include <uriscv/const.h>
 
 //Prototipi delle SysCall visibili SOLO in questo file "exceptions.c"
@@ -57,6 +57,7 @@ void *memcpy(void *dst, const void *src, unsigned int n) {
 void exceptionHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     unsigned int cause = savedState->cause;
+    //print_hex(cause);
 
     //unsigned int cause = getCAUSE();
 
