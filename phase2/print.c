@@ -57,3 +57,16 @@ void termprint_direct(char *str) {
     /* Ripristina gli interrupt */
     setSTATUS(oldStatus);
 }
+
+void print_hex(unsigned int n) {
+    char hex_chars[] = "0123456789ABCDEF";
+    char buffer[11]; // "0x" + 8 cifre + terminatore
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    for (int i = 9; i >= 2; i--) {
+        buffer[i] = hex_chars[n & 0xF];
+        n >>= 4;
+    }
+    buffer[10] = '\0';
+    termprint_direct(buffer);
+}

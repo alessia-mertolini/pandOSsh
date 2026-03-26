@@ -55,6 +55,7 @@ void *memcpy(void *dst, const void *src, unsigned int n) {
  * Legge il campo cause dallo stato salvato per determinare il tipo di
  * eccezione e smista al gestore appropriato */
 void exceptionHandler(void) {
+    termprint_direct("EXCEPTION HANDLER\n");
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     // unsigned int cause = savedState->cause;
 
@@ -83,6 +84,7 @@ void exceptionHandler(void) {
  *      2 - valori >= 1 => Pass Up or Die (GENERALEXCEPT)
  *      3 - qualsiasi altro valore non gestito => simula PRIVINSTR */
 void syscallHandler(void) {
+    termprint_direct("syscall Handler\n");
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     int syscallNum = (int)savedState->reg_a0;
     int kernelMode = IS_KERNEL_MODE(savedState->status);
@@ -208,39 +210,34 @@ static void createProcess(state_t *savedState) {
  * ------------------------------------------------------------------------- */
 static void terminateProcess(state_t *savedState) {
     int targetPid = (int) savedState->reg_a1;
+    pcb_t *target = NULL;
 
-    if (targetPid == 0) {
-        //Termina il processo corrente
-        terminateProcessTree(currentProcess);
-        currentProcess = NULL;
+    if (targetPid == 0 || (currentProcess != NULL && targetPid == currentProcess->p_pid)) {
+        // Caso A: Termina il processo corrente
+        target = currentProcess;
     } else {
-        //Si ricerca il target scansionando la ready Queue
-        pcb_t *target = NULL;
-        //Cerca nella ready queue
-        pcb_t *iter; //iteratore necessario alla macro
-        list_for_each_entry(iter, &readyQueue, p_list) { //macro di listx.h
+        // Caso B: Cerca il processo target nella readyQueue
+        pcb_t *iter;
+        list_for_each_entry(iter, &readyQueue, p_list) {
             if (iter->p_pid == targetPid) {
                 target = iter;
                 break;
             }
         }
-        //Se non trovato nella ready queue, controlla se è il processo corrente
-        if (target == NULL && currentProcess != NULL && currentProcess->p_pid == targetPid) {
-            target = currentProcess;
-        }
-        if (target != NULL) { //Se si è rinvenuto un target durante la ricerca lo si elimina
-            if (target == currentProcess) {
-                terminateProcessTree(currentProcess);
-                currentProcess = NULL;
-            } else {
-                terminateProcessTree(target);
-            }
-        }
-        //Se la ricerca non ha successo perché il PID non esisteva non si fa nulla
+        // Nota: in un sistema completo cercheresti anche tra i bloccati (ASL),
+        // ma terminateProcessTree gestisce lo sgancio se abbiamo il puntatore al PCB.
     }
-    scheduler(); //si richiama lo scheduler
-}
 
+    if (target != NULL) {
+        terminateProcessTree(target);
+        if (target == currentProcess) {
+            currentProcess = NULL;
+        }
+    }
+
+    // Dopo la terminazione, il controllo passa SEMPRE allo scheduler
+    scheduler();
+}
 /* -------------------------------------------------------------------------
  * NSYS3 – Passeren (P)
  *
@@ -444,31 +441,40 @@ static void passUpOrDie(int exceptionType, state_t *savedState) {
 
 //termina un sottoalbero di processi
 static void terminateProcessTree(pcb_t *root) {
-    //Termina prima tutti i figli, poi termina il nodo radice
+    if (root == NULL) return;
+
+    // 1. Termina ricorsivamente tutti i figli (rimozione dal basso)
     while (!emptyChild(root)) {
         pcb_t *child = removeChild(root);
         terminateProcessTree(child);
     }
-    //Distaccamento del nodo root dal suo genitore
+
+    // 2. Sgancia il processo dal padre (rimozione dai figli)
     if (root->p_parent != NULL) {
         outChild(root);
     }
 
-    //Rimuove root da qualsiasi struttura in cui si trova 
+    // 3. Rimuove il processo dalla struttura in cui si trova (ReadyQueue o Semaforo)
     if (root == currentProcess) {
-        //sarà compito del chiamante impostare currentProcess = NULL
+        // Verrà messo a NULL nel chiamante (terminateProcess)
     } else if (root->p_semAdd != NULL) {
-        outBlocked(root); //rimozione processo dalla coda del semaforo su cui è bloccato
-        //distinzione tra semafori dei dispositivi e semafori utente
-        int *base = &deviceSemaphores[0];
-        int *end = &deviceSemaphores[SEMDEVLEN];
-        if (root->p_semAdd >= base && root->p_semAdd < end) { //caso semaforo di dispositivo
+        // È bloccato su un semaforo (ASL)
+        int *semAddr = root->p_semAdd;
+        outBlocked(root);
+        
+        // Se era un semaforo di device, aggiorna il contatore soft-block
+        if (semAddr >= &deviceSemaphores[0] && semAddr < &deviceSemaphores[SEMDEVLEN]) {
             softBlockCount--;
+        } else {
+            // Se è un semaforo utente, incrementa il valore (perché il processo non lo occupa più)
+            (*semAddr)++;
         }
     } else {
-        //Il processo è nella ready queue
+        // È nella ready queue (rimozione dalla readyQueue)
         outProcQ(&readyQueue, root);
     }
+
+    // 4. Aggiorna i contatori globali e libera il PCB
     processCount--;
     freePcb(root);
 }
