@@ -36,13 +36,13 @@ cpu_t start_tod;
  * scheduler()
  * ----------------------------------------------------------------------- */
 void scheduler(void) {
-    termprint_direct("SCHEDULER -- INIZIO PROBLEMA\n");
     currentProcess = NULL;
 
     /* ----------------------------------------------------------------
      * CASO 1: c'è almeno un processo pronto -> dispatch
      * ---------------------------------------------------------------- */
     if (!emptyProcQ(&readyQueue)) {
+
         /* Estrae il PCB a priorità massima */
         currentProcess = removeProcQ(&readyQueue);
 
@@ -52,45 +52,9 @@ void scheduler(void) {
         /* Marca temporale TOD di inizio quanto */
         STCK(start_tod);
 
-        termprint_direct("\n pc_epc: ");
-        print_hex(currentProcess->p_s.pc_epc);
-        termprint_direct("\n reg_sp: ");
-        print_hex(currentProcess->p_s.reg_sp);
-        termprint_direct("\n reg_spstatus: ");
-        print_hex(currentProcess->p_s.status);
-        termprint_direct("\n processCount: ");
-        print_hex(processCount);
-        termprint_direct("\n fine controllo - \n \n  ");
-
         /* Dispatch: carica il processor state del processo.
          * LDST non ritorna. */
-        termprint_direct("problema qui in scheduler.c -->\n");
-
-        // DEBUG: Stampa cosa stiamo per caricare
-        termprint_direct("Dispatching PID: ");
-        print_hex(currentProcess->p_pid);
-        termprint_direct(" PC: ");
-        print_hex(currentProcess->p_s.pc_epc); // QUESTO è il valore critico
-        termprint_direct("\n");
-
-        // Stampa gli indirizzi dei campi per vedere dove "cadono"
-        termprint_direct("Offsets check: \n");
-        termprint_direct("\nPC offset: ");
-        print_hex(currentProcess->p_s.pc_epc);
-        termprint_direct(" - ");
-        print_hex(currentProcess->p_s);
-        termprint_direct("\nStatus offset: ");
-        print_hex(currentProcess->p_s.status);
-        termprint_direct(" - ");
-        print_hex(currentProcess->p_s);
-        termprint_direct("\nSP offset: ");
-        print_hex(currentProcess->p_s.reg_sp);
-        termprint_direct(" - ");
-        print_hex(currentProcess->p_s);
-        
-        LDST( (state_t *) &(currentProcess->p_s.pc_epc) );
-        termprint_direct("ldst\n");
-
+        LDST(&(currentProcess->p_s));
         /* UNREACHABLE */
     }
 
@@ -98,7 +62,6 @@ void scheduler(void) {
      * CASO 2: nessun processo esistente -> lavoro completato
      * ---------------------------------------------------------------- */
     if (processCount == 0) {
-        termprint_direct("nessun processo esistente\n");
         HALT();
         /* UNREACHABLE */
     }
