@@ -63,7 +63,7 @@ void exceptionHandler(void) {
     if (CAUSE_IS_INT(cause)) {
         interruptHandler();
     } else {
-        unsigned int excCode = CAUSE_EXCCODE(cause); // ← calcolato solo se non interrupt
+        unsigned int excCode = CAUSE_EXCCODE(cause); //calcolato solo se non interrupt
         if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) {
             syscallHandler();
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
