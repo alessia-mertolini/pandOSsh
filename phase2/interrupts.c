@@ -232,7 +232,7 @@ static void handleIntervalTimer() {
      * Nota: il semaforo pseudo-clock parte da 0 (sincrono), quindi dopo NSYS7
      * vale -N dove N è il numero di processi in attesa.
      */
-    while (deviceSemaphores[SEMDEV_PSEUDOCLK] <= 0) {
+    while (deviceSemaphores[SEMDEV_PSEUDOCLK] < 0) {
         /*
          * verhogenSemDevice gestisce anche l'aggiornamento di softBlockCount,
          * il movimento del PCB nella ready queue, e il deposito dello status.

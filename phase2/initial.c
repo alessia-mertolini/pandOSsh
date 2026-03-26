@@ -14,7 +14,7 @@
 #include "./headers/scheduler.h"
 #include <uriscv/liburiscv.h>
 #include <uriscv/types.h>
-#include "print.c"
+#include "./print.h"
 
 /* -----------------------------------------------------------------------
  * Dichiarazione della funzione test (fornita esternamente per il debug)
@@ -139,7 +139,9 @@ int main(void) {
     /* ------------------------------------------------------------------
      * 6. Avvia lo scheduler (non ritorna mai)
      * ------------------------------------------------------------------ */
+    termprint_direct("STEP 6 -- INIZIO PROBLEMA\n");
     scheduler();
+    termprint_direct("fine STEP 6\n");
 
     /* UNREACHABLE - main() non deve mai tornare */
     return 0;

@@ -14,7 +14,7 @@
  * ========================================================================= */
 
 #include "./headers/exceptions.h"
-#include "./print.c"
+#include "./print.h"
 #include <uriscv/const.h>
 
 //Prototipi delle SysCall visibili SOLO in questo file "exceptions.c"
@@ -500,7 +500,7 @@ static int getSemaphoreIndex(int *commandAddr) {
         //ogni linea continene 8 devices + sommiamo DevNo per il device correttol
         semIdx = (intLineNo - 3) * 8 + DevNo;
     } else{ //terminal device
-        int internalOffset = addr % 0x10; //identifica il sub-device corrispondente
+        int internalOffset = (addr - START_DEVREG) % 0x10; //identifica il sub-device corrispondente
         //! inversione di transm e recv perche' transm ha priorita' maggiore
         if(internalOffset == 0xC){ //TRANSM_COMMAND
             //32 perché siamo nella linea / e quindi quanto meno siamo dopo 4(linnee) * 8(devices)

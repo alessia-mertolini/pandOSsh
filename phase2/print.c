@@ -1,3 +1,6 @@
+#include <uriscv/liburiscv.h>
+#include "../headers/const.h"
+
 /* -------------------------------------------------------------------------
  * Costanti hardware del terminale 0
  * Stessa logica di p1test.c: accesso diretto ai registri del device.
@@ -17,7 +20,8 @@
  * Se questa funzione non stampa nulla → problema in initial.c/scheduler.
  * Se stampa → il kernel parte, il problema è nelle SYSCALL o negli interrupt.
  * ------------------------------------------------------------------------- */
-static void termprint_direct(char *str) {
+ // static
+void termprint_direct(char *str) {
     volatile unsigned int *status  = (unsigned int *)(TERM0ADDR + TERM_TRANSM_STATUS);
     volatile unsigned int *command = (unsigned int *)(TERM0ADDR + TERM_TRANSM_CMD);
     unsigned int stat;
