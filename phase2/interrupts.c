@@ -1,9 +1,14 @@
 /*
- * interrupts.c  [DEBUG VERSION]
+ * interrupts.c
+ *
+ * NOTA: tutte le chiamate a termprint_direct/print_hex sono state rimosse
+ * da questo file perché usano lo stesso registro TX del terminale 0.
+ * Qualsiasi scrittura sul terminale mentre un interrupt del terminale è
+ * pendente in MIP causa un ACK implicito, svuotando il bit nel CDEV bitmap
+ * prima che handleDeviceInterrupt lo possa leggere.
  */
 
 #include "./headers/interrupts.h"
-#include "./print.h"
 
 static inline state_t *getSavedExceptionState() {
     int cpuId = getPRID();
@@ -33,10 +38,8 @@ static int getDeviceNumber(unsigned int bitmap) {
 
 static void returnToCurrentOrSchedule() {
     if (currentProcess != NULL) {
-        termprint_direct("[INT] returnToCurrent\n");
         LDST(getSavedExceptionState());
     } else {
-        termprint_direct("[INT] -> scheduler\n");
         scheduler();
     }
 }
@@ -51,35 +54,32 @@ static pcb_t *verhogenSemDevice(int *sem, unsigned int statusCode) {
             unblocked->p_semAdd = NULL;
             insertProcQ(&readyQueue, unblocked);
             softBlockCount--;
-            termprint_direct("[verhogenSemDev] unblocked pid=");
-            print_hex((unsigned int)unblocked->p_pid);
-            termprint_direct("\n");
         }
     }
     return unblocked;
 }
 
 static void handlePLT() {
-    termprint_direct("[PLT] handlePLT\n");
     state_t *savedState = getSavedExceptionState();
-    setTIMER(MIE_ALL);
-    currentProcess->p_s = *savedState;
+    setTIMER(NEVER);  /* disable PLT unconditionally */
+    if (currentProcess == NULL) {
+        /* PLT fired while no process was running (expired during exception handling) */
+        scheduler();
+        return; /* unreachable */
+    }
     updateProcessTime();
+    currentProcess->p_s = *savedState;
     insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL;
-    termprint_direct("[PLT] -> scheduler\n");
     scheduler();
 }
 
 static void handleIntervalTimer() {
-    termprint_direct("[ITIMER] sono dentro interval timer\n");
     LDIT(PSECOND);
     while (deviceSemaphores[SEMDEV_PSEUDOCLK] <= 0) {
         pcb_t *unblocked = verhogenSemDevice(&deviceSemaphores[SEMDEV_PSEUDOCLK], 0);
         if (unblocked == NULL) break;
     }
-    termprint_direct("sono uscito da interval timer\n");
-    /* Non tornare subito — ricontrolla la cause per altri interrupt */
     returnToCurrentOrSchedule();
 }
 
@@ -87,24 +87,15 @@ static void handleDeviceInterrupt(int intLineNo) {
     /* 1. Leggi la bitmap dei device che hanno interrotto su questa linea */
     unsigned int bitmap = *((volatile unsigned int *)CDEV_BITMAP_ADDR(intLineNo));
 
-    termprint_direct("[DEV] line="); print_hex((unsigned int)intLineNo);
-    termprint_direct(" bitmap=");    print_hex(bitmap);
-    termprint_direct("\n");
-
     /* 2. Trova quale device ha interrotto */
     int devNo = getDeviceNumber(bitmap);
     if (devNo < 0) {
-        termprint_direct("[DEV] no devNo found\n");
         returnToCurrentOrSchedule();
         return;
     }
 
-    termprint_direct("[DEV] devNo="); print_hex((unsigned int)devNo); termprint_direct("\n");
-
-    /* 3. Calcola l'indirizzo del device register - intLineNo è già 17-21 */
+    /* 3. Calcola l'indirizzo del device register */
     memaddr devRegAddr = DEV_REG_ADDR(intLineNo, devNo);
-
-    termprint_direct("[DEV] devRegAddr="); print_hex(devRegAddr); termprint_direct("\n");
 
     /* 4. Gestisci in base al tipo di device */
     if (intLineNo == IL_TERMINAL) {
@@ -121,8 +112,6 @@ static void handleDeviceInterrupt(int intLineNo) {
             unsigned int statusCode = *recvStatus;
             *recvCommand = ACK;
             verhogenSemDevice(&deviceSemaphores[SEMDEV_TERMRX_BASE + devNo], statusCode);
-        } else {
-            termprint_direct("[DEV] TERM spurious\n");
         }
     } else {
         volatile unsigned int *devStatus  = (unsigned int *)(devRegAddr + 0x0);
@@ -136,37 +125,10 @@ static void handleDeviceInterrupt(int intLineNo) {
     returnToCurrentOrSchedule();
 }
 
-// void interruptHandler() {
-//     unsigned int cause = getCAUSE();
-//     unsigned int intCode = CAUSE_EXCCODE(cause);
-
-//     termprint_direct("[INT] cause="); print_hex(cause); termprint_direct("\n");
-//     termprint_direct("[INT] code="); print_hex(intCode); termprint_direct("\n");
-
-//     if (intCode == 1) {
-//         handlePLT();
-//     } else if (intCode == 2) {
-//         handleIntervalTimer();
-//     } else if (intCode == 3) {
-//         handleDeviceInterrupt(IL_DISK);
-//     } else if (intCode == 4) {
-//         handleDeviceInterrupt(IL_FLASH);
-//     } else if (intCode == 5) {
-//         handleDeviceInterrupt(IL_ETHERNET);
-//     } else if (intCode == 6) {
-//         handleDeviceInterrupt(IL_PRINTER);
-//     } else if (intCode == 7) {
-//         handleDeviceInterrupt(IL_TERMINAL);
-//     } else {
-//         termprint_direct("[INT] spurious\n");
-//         returnToCurrentOrSchedule();
-//     }
-// }
-
 
 void interruptHandler() {
     unsigned int cause = getCAUSE();
-    unsigned int intCode = cause & 0x7FFFFFFF;  // rimuovi bit 31
+    unsigned int intCode = cause & 0x7FFFFFFF;
 
     if (intCode == IL_CPUTIMER) {
         handlePLT();

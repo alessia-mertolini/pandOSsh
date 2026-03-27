@@ -29,25 +29,15 @@ void exceptionHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     unsigned int cause = savedState->cause;
 
-    termprint_direct("[EXC] cause=");
-    print_hex(cause);
-    termprint_direct("\n");
-
     if (CAUSE_IS_INT(cause)) {
-        termprint_direct("[EXC] -> interruptHandler\n");
         interruptHandler();
     } else {
         unsigned int excCode = CAUSE_EXCCODE(cause);
         if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) {
-            termprint_direct("[EXC] -> syscallHandler\n");
             syscallHandler();
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
-            termprint_direct("[EXC] -> tlbExceptionHandler\n");
             tlbExceptionHandler();
         } else {
-            termprint_direct("[EXC] -> programTrapHandler excCode=");
-            print_hex(excCode);
-            termprint_direct("\n");
             programTrapHandler();
         }
     }
@@ -279,12 +269,12 @@ static void doIO(state_t *savedState) {
     /* 3. Solo ORA togli il currentProcess */
     currentProcess = NULL;
 
-    /* 4. Scrivi il comando nel device register per avviare l'operazione */
+    /* 4. Scrivi il comando nel device register per avviare l'operazione.
+     *    IMPORTANTE: deve essere l'ultima istruzione prima di scheduler().
+     *    Qualsiasi termprint_direct() dopo questa scrittura userebbe lo
+     *    stesso registro TX del terminale, consumando l'interrupt pendente
+     *    prima che WAIT() lo possa ricevere. */
     *commandAddr = commandValue;
-
-    termprint_direct("[doIO] post-write bitmap=");
-    print_hex(*((volatile unsigned int *)CDEV_BITMAP_ADDR(IL_TERMINAL)));
-    termprint_direct("\n");
 
     /* 5. Chiama lo scheduler */
     scheduler();

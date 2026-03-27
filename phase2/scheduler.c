@@ -74,7 +74,8 @@ void scheduler(void) {
      *   b) abilitare la gestione globale degli interrupt (MSTATUS_MIE_MASK)
      * ---------------------------------------------------------------- */
     if (softBlockCount > 0) {
-        /* Disabilita solo il PLT, lascia attivi tutti gli altri interrupt */
+        /* Disabilita il PLT: sia resettando il timer sia togliendo il bit in MIE */
+        setTIMER(NEVER);
         setMIE(MIE_ALL & ~MIE_MTIE_MASK);
 
         /* Abilita globalmente la ricezione degli interrupt */
