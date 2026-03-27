@@ -291,6 +291,7 @@ static void getCPUTime(state_t *savedState) {
 }
 
 static void waitForClock(state_t *savedState) {
+    for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
     // termprint_direct("[waitForClock] BLOCK -> scheduler\n");
     updateCPUTime();
     currentProcess->p_s = *savedState;
