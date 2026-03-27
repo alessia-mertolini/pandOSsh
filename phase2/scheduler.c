@@ -75,7 +75,7 @@ void scheduler(void) {
      * ---------------------------------------------------------------- */
     if (softBlockCount > 0) {
         /* Disabilita il PLT: sia resettando il timer sia togliendo il bit in MIE */
-        setTIMER(NEVER);
+        setTIMER(TIMESLICE);
         setMIE(MIE_ALL & ~MIE_MTIE_MASK);
 
         /* Abilita globalmente la ricezione degli interrupt */

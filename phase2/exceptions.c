@@ -48,84 +48,84 @@ void syscallHandler(void) {
     int syscallNum = (int)savedState->reg_a0;
     int kernelMode = IS_KERNEL_MODE(savedState->status);
 
-    termprint_direct("[SYS] num=");
-    print_hex((unsigned int)syscallNum);
-    termprint_direct(" kern=");
-    print_hex((unsigned int)kernelMode);
-    termprint_direct("\n");
+    // termprint_direct("[SYS] num=");
+    // print_hex((unsigned int)syscallNum);
+    // termprint_direct(" kern=");
+    // print_hex((unsigned int)kernelMode);
+    // termprint_direct("\n");
 
     savedState->pc_epc += WORDLEN;
 
     if (syscallNum < 0) {
         if (!kernelMode) {
-            termprint_direct("[SYS] -> PRIVINSTR (user mode)\n");
+            // termprint_direct("[SYS] -> PRIVINSTR (user mode)\n");
             savedState->cause = (savedState->cause & CLEAREXECCODE) | (PRIVINSTR << CAUSESHIFT);
             programTrapHandler();
             return;
         }
         switch (syscallNum) {
             case CREATEPROCESS:
-                termprint_direct("[SYS] -> createProcess\n");
+                // termprint_direct("[SYS] -> createProcess\n");
                 createProcess(savedState);
                 break;
             case TERMPROCESS:
-                termprint_direct("[SYS] -> terminateProcess\n");
+                // termprint_direct("[SYS] -> terminateProcess\n");
                 terminateProcess(savedState);
                 break;
             case PASSEREN:
-                termprint_direct("[SYS] -> passeren\n");
+                // termprint_direct("[SYS] -> passeren\n");
                 passeren(savedState);
                 break;
             case VERHOGEN:
-                termprint_direct("[SYS] -> verhogen\n");
+                // termprint_direct("[SYS] -> verhogen\n");
                 verhogen(savedState);
                 break;
             case DOIO:
-                termprint_direct("[SYS] -> doIO\n");
+                // termprint_direct("[SYS] -> doIO\n");
                 doIO(savedState);
                 break;
             case GETTIME:
-                termprint_direct("[SYS] -> getCPUTime\n");
+                // termprint_direct("[SYS] -> getCPUTime\n");
                 getCPUTime(savedState);
                 break;
             case CLOCKWAIT:
-                termprint_direct("[SYS] -> waitForClock\n");
+                // termprint_direct("[SYS] -> waitForClock\n");
                 waitForClock(savedState);
                 break;
             case GETSUPPORTPTR:
-                termprint_direct("[SYS] -> getSupportData\n");
+                // termprint_direct("[SYS] -> getSupportData\n");
                 getSupportData(savedState);
                 break;
             case GETPROCESSID:
-                termprint_direct("[SYS] -> getProcessID\n");
+                // termprint_direct("[SYS] -> getProcessID\n");
                 getProcessID(savedState);
                 break;
             case YIELD:
-                termprint_direct("[SYS] -> yield\n");
+                // termprint_direct("[SYS] -> yield\n");
                 yield(savedState);
                 break;
             default:
-                termprint_direct("[SYS] -> default PRIVINSTR num=");
-                print_hex((unsigned int)syscallNum);
-                termprint_direct("\n");
+                // termprint_direct("[SYS] -> default PRIVINSTR num=");
+                // print_hex((unsigned int)syscallNum);
+                // termprint_direct("\n");
                 savedState->cause = (savedState->cause & CLEAREXECCODE) | (PRIVINSTR << CAUSESHIFT);
                 programTrapHandler();
                 break;
         }
     } else {
-        termprint_direct("[SYS] -> passUpOrDie (num>=1)\n");
+        // termprint_direct("[SYS] -> passUpOrDie (num>=1)\n");
         passUpOrDie(GENERALEXCEPT, savedState);
     }
 }
 
 void programTrapHandler(void) {
-    termprint_direct("[TRAP] programTrapHandler\n");
+    // termprint_direct("[TRAP] programTrapHandler\n");
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     passUpOrDie(GENERALEXCEPT, savedState);
 }
 
 void tlbExceptionHandler(void) {
-    termprint_direct("[TLB] tlbExceptionHandler\n");
+    // termprint_direct("[TLB] tlbExceptionHandler\n");
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     passUpOrDie(PGFAULTEXCEPT, savedState);
 }
@@ -136,7 +136,7 @@ static void createProcess(state_t *savedState) {
     support_t *supportPtr = (support_t *) savedState->reg_a3;
     pcb_t *newPcb = allocPcb();
     if (newPcb == NULL) {
-        termprint_direct("[createProcess] FAIL no PCB\n");
+        // termprint_direct("[createProcess] FAIL no PCB\n");
         savedState->reg_a0 = (unsigned int) -1;
         LDST(savedState);
         return;
@@ -149,18 +149,18 @@ static void createProcess(state_t *savedState) {
     insertChild(currentProcess, newPcb);
     insertProcQ(&readyQueue, newPcb);
     processCount++;
-    termprint_direct("[createProcess] OK pid=");
-    print_hex((unsigned int)newPcb->p_pid);
-    termprint_direct("\n");
+    // termprint_direct("[createProcess] OK pid=");
+    // print_hex((unsigned int)newPcb->p_pid);
+    // termprint_direct("\n");
     savedState->reg_a0 = (unsigned int) newPcb->p_pid;
     LDST(savedState);
 }
 
 static void terminateProcess(state_t *savedState) {
     int targetPid = (int) savedState->reg_a1;
-    termprint_direct("[terminateProcess] targetPid=");
-    print_hex((unsigned int)targetPid);
-    termprint_direct("\n");
+    // termprint_direct("[terminateProcess] targetPid=");
+    // print_hex((unsigned int)targetPid);
+    // termprint_direct("\n");
 
     if (targetPid == 0) {
         terminateProcessTree(currentProcess);
@@ -186,18 +186,18 @@ static void terminateProcess(state_t *savedState) {
             }
         }
     }
-    termprint_direct("[terminateProcess] -> scheduler\n");
+    // termprint_direct("[terminateProcess] -> scheduler\n");
     scheduler();
 }
 
 static void passeren(state_t *savedState) {
     int *semAddr = (int *) savedState->reg_a1;
     (*semAddr)--;
-    termprint_direct("[passeren] sem=");
-    print_hex((unsigned int)*semAddr);
-    termprint_direct("\n");
+    // termprint_direct("[passeren] sem=");
+    // print_hex((unsigned int)*semAddr);
+    // termprint_direct("\n");
     if (*semAddr < 0) {
-        termprint_direct("[passeren] BLOCK -> scheduler\n");
+        // termprint_direct("[passeren] BLOCK -> scheduler\n");
         updateCPUTime();
         currentProcess->p_s = *savedState;
         insertBlocked(semAddr, currentProcess);
@@ -209,7 +209,7 @@ static void passeren(state_t *savedState) {
         currentProcess = NULL;
         scheduler();
     } else {
-        termprint_direct("[passeren] PASS\n");
+        // termprint_direct("[passeren] PASS\n");
         LDST(savedState);
     }
 }
@@ -217,15 +217,15 @@ static void passeren(state_t *savedState) {
 static void verhogen(state_t *savedState) {
     int *semAddr = (int *) savedState->reg_a1;
     (*semAddr)++;
-    termprint_direct("[verhogen] sem=");
-    print_hex((unsigned int)*semAddr);
-    termprint_direct("\n");
+    // termprint_direct("[verhogen] sem=");
+    // print_hex((unsigned int)*semAddr);
+    // termprint_direct("\n");
     if (*semAddr <= 0) {
         pcb_t *unblocked = removeBlocked(semAddr);
         if (unblocked != NULL) {
-            termprint_direct("[verhogen] unblocked pid=");
-            print_hex((unsigned int)unblocked->p_pid);
-            termprint_direct("\n");
+            // termprint_direct("[verhogen] unblocked pid=");
+            // print_hex((unsigned int)unblocked->p_pid);
+            // termprint_direct("\n");
             unblocked->p_semAdd = NULL;
             int *base = &deviceSemaphores[0];
             int *end  = &deviceSemaphores[SEMDEVLEN];
@@ -243,13 +243,13 @@ static void doIO(state_t *savedState) {
     int commandValue = (int) savedState->reg_a2;
     int semIdx = getSemaphoreIndex(commandAddr);
 
-    termprint_direct("[doIO] semIdx=");
-    print_hex((unsigned int)semIdx);
-    termprint_direct(" cmdAddr=");
-    print_hex((unsigned int)commandAddr);
-    termprint_direct(" cmdVal=");
-    print_hex((unsigned int)commandValue);
-    termprint_direct("\n");
+    // termprint_direct("[doIO] semIdx=");
+    // print_hex((unsigned int)semIdx);
+    // termprint_direct(" cmdAddr=");
+    // print_hex((unsigned int)commandAddr);
+    // termprint_direct(" cmdVal=");
+    // print_hex((unsigned int)commandValue);
+    // termprint_direct("\n");
 
     /* 1. Salva stato e tempo del processo corrente */
     updateCPUTime();
@@ -260,11 +260,11 @@ static void doIO(state_t *savedState) {
     insertBlocked(&deviceSemaphores[semIdx], currentProcess);
     softBlockCount++;
 
-    termprint_direct("[doIO] blocked pid=");
-    print_hex((unsigned int)currentProcess->p_pid);
-    termprint_direct(" sem=");
-    print_hex((unsigned int)deviceSemaphores[semIdx]);
-    termprint_direct("\n");
+    // termprint_direct("[doIO] blocked pid=");
+    // print_hex((unsigned int)currentProcess->p_pid);
+    // termprint_direct(" sem=");
+    // print_hex((unsigned int)deviceSemaphores[semIdx]);
+    // termprint_direct("\n");
 
     /* 3. Solo ORA togli il currentProcess */
     currentProcess = NULL;
@@ -289,7 +289,7 @@ static void getCPUTime(state_t *savedState) {
 }
 
 static void waitForClock(state_t *savedState) {
-    termprint_direct("[waitForClock] BLOCK -> scheduler\n");
+    // termprint_direct("[waitForClock] BLOCK -> scheduler\n");
     updateCPUTime();
     currentProcess->p_s = *savedState;
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX]--;
@@ -319,7 +319,7 @@ static void getProcessID(state_t *savedState) {
 }
 
 static void yield(state_t *savedState) {
-    termprint_direct("[yield] -> scheduler\n");
+    // termprint_direct("[yield] -> scheduler\n");
     updateCPUTime();
     currentProcess->p_s = *savedState;
     insertProcQ(&readyQueue, currentProcess);
@@ -329,14 +329,14 @@ static void yield(state_t *savedState) {
 
 static void passUpOrDie(int exceptionType, state_t *savedState) {
     if (currentProcess->p_supportStruct == NULL) {
-        termprint_direct("[passUpOrDie] DIE no supportStruct\n");
+        // termprint_direct("[passUpOrDie] DIE no supportStruct\n");
         terminateProcessTree(currentProcess);
         currentProcess = NULL;
         scheduler();
     } else {
-        termprint_direct("[passUpOrDie] PASS UP type=");
-        print_hex((unsigned int)exceptionType);
-        termprint_direct("\n");
+        // termprint_direct("[passUpOrDie] PASS UP type=");
+        // print_hex((unsigned int)exceptionType);
+        // termprint_direct("\n");
         currentProcess->p_supportStruct->sup_exceptState[exceptionType] = *savedState;
         context_t *ctx = &currentProcess->p_supportStruct->sup_exceptContext[exceptionType];
         LDCXT(ctx->stackPtr, ctx->status, ctx->pc);

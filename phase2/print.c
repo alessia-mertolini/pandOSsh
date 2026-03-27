@@ -9,6 +9,7 @@
 #define TRANSMITTED     5
 #define STATUSMASK      0xFF
 #include "../headers/const.h"
+#include <uriscv/liburiscv.h>
 
 /* -------------------------------------------------------------------------
  * termprint_direct() - stampa SENZA usare SYSCALL
@@ -54,6 +55,7 @@ void termprint_direct(char *str) {
     /* Ripristina gli interrupt */
     setSTATUS(oldStatus);
 }
+
 void print_hex(unsigned int n) {
     char hex_chars[] = "0123456789ABCDEF";
     char buffer[11]; // "0x" + 8 cifre + terminatore

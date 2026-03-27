@@ -76,10 +76,16 @@ static void handlePLT() {
 
 static void handleIntervalTimer() {
     LDIT(PSECOND);
+
+    // Sblocca TUTTI i processi in attesa, poi forza il semaforo a 0
     while (deviceSemaphores[SEMDEV_PSEUDOCLK] <= 0) {
         pcb_t *unblocked = verhogenSemDevice(&deviceSemaphores[SEMDEV_PSEUDOCLK], 0);
         if (unblocked == NULL) break;
     }
+    
+    // Forza il semaforo a 0: non deve accumularsi tra un tick e l'altro
+    deviceSemaphores[SEMDEV_PSEUDOCLK] = 0;
+
     returnToCurrentOrSchedule();
 }
 
