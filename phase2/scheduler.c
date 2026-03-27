@@ -24,6 +24,7 @@
  * ----------------------------------------------------------------------- */
 
 #include "./headers/scheduler.h"
+#include "./print.h"
 
 /* -----------------------------------------------------------------------
  * Definizione di start_tod (dichiarata extern in scheduler.h)
@@ -93,6 +94,10 @@ void scheduler(void) {
     /* ----------------------------------------------------------------
      * CASO 4: processCount > 0 && softBlockCount == 0 -> DEADLOCK
      * ---------------------------------------------------------------- */
-    PANIC();
+    if (processCount > 0 && softBlockCount == 0) {
+        termprint_direct("Process count = "); print_hex(processCount);
+        PANIC();
+    }
+    HALT();
     /* UNREACHABLE */
 }

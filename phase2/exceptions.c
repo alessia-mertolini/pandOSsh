@@ -119,8 +119,10 @@ void syscallHandler(void) {
 }
 
 void programTrapHandler(void) {
-    // termprint_direct("[TRAP] programTrapHandler\n");
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
+    /* Azzera MPP: il processo riprenderà in user mode nel Support Level.
+     * Necessario per il corretto flusso p5→p5a (ADDRERROR su kseg). */
+    savedState->status &= ~MSTATUS_MPP_MASK;
     passUpOrDie(GENERALEXCEPT, savedState);
 }
 
@@ -329,14 +331,10 @@ static void yield(state_t *savedState) {
 
 static void passUpOrDie(int exceptionType, state_t *savedState) {
     if (currentProcess->p_supportStruct == NULL) {
-        // termprint_direct("[passUpOrDie] DIE no supportStruct\n");
         terminateProcessTree(currentProcess);
         currentProcess = NULL;
         scheduler();
     } else {
-        // termprint_direct("[passUpOrDie] PASS UP type=");
-        // print_hex((unsigned int)exceptionType);
-        // termprint_direct("\n");
         currentProcess->p_supportStruct->sup_exceptState[exceptionType] = *savedState;
         context_t *ctx = &currentProcess->p_supportStruct->sup_exceptContext[exceptionType];
         LDCXT(ctx->stackPtr, ctx->status, ctx->pc);
