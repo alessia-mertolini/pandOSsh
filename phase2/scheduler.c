@@ -24,11 +24,13 @@
  * ----------------------------------------------------------------------- */
 
 #include "./headers/scheduler.h"
+#include "./print.h"
 
 /* -----------------------------------------------------------------------
  * Definizione di start_tod (dichiarata extern in scheduler.h)
  * ----------------------------------------------------------------------- */
 cpu_t start_tod;
+
 
 /* -----------------------------------------------------------------------
  * scheduler()
@@ -45,16 +47,15 @@ void scheduler(void) {
         currentProcess = removeProcQ(&readyQueue);
 
         /* Carica il PLT: allo scadere genera interrupt linea 1 (PLT) */
-        setTIMER(TIMESLICE);
+        setTIMER(TIMESLICE); //questo è il time slice specifico e deciso da initial.c
 
         /* Marca temporale TOD di inizio quanto */
         STCK(start_tod);
 
         /* Dispatch: carica il processor state del processo.
          * LDST non ritorna. */
-        LDST(&(currentProcess->p_s));
-
-        /* UNREACHABLE */
+        LDST(&(currentProcess->p_s)); 
+        /*UNREACHABLE*/
     }
 
     /* ----------------------------------------------------------------
@@ -74,8 +75,8 @@ void scheduler(void) {
      *   b) abilitare la gestione globale degli interrupt (MSTATUS_MIE_MASK)
      * ---------------------------------------------------------------- */
     if (softBlockCount > 0) {
-
-        /* Disabilita solo il PLT, lascia attivi tutti gli altri interrupt */
+        /* Disabilita il PLT: sia resettando il timer sia togliendo il bit in MIE */
+        setTIMER(TIMESLICE);
         setMIE(MIE_ALL & ~MIE_MTIE_MASK);
 
         /* Abilita globalmente la ricezione degli interrupt */
@@ -87,13 +88,18 @@ void scheduler(void) {
          * L'exception handler riprenderà il controllo e chiamerà di
          * nuovo scheduler(). WAIT non ritorna. */
         WAIT();
-
         /* UNREACHABLE */
     }
 
     /* ----------------------------------------------------------------
      * CASO 4: processCount > 0 && softBlockCount == 0 -> DEADLOCK
      * ---------------------------------------------------------------- */
+    // if (processCount > 0 && softBlockCount == 0) {
+    //     termprint_direct("[K-SCHED] DEADLOCK DETECTED! procCount: ");
+    //     print_hex(processCount);
+    //     termprint_direct("\n");
+    //     HALT();
+    // }
     PANIC();
     /* UNREACHABLE */
 }

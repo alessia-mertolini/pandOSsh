@@ -17,6 +17,7 @@
 
 #include "../headers/const.h"
 #include "../headers/types.h"
+#include "print.h"
 #include <uriscv/liburiscv.h>
 
 typedef unsigned int devregtr;
@@ -313,6 +314,8 @@ void test() {
 
     SYSCALL(PASSEREN, (int)&sem_blkp4, 0, 0); /* P(sem_blkp4)		*/
 
+    print("[DEBUG] fine del figlio di p4\n");
+
     /* now for a more rigorous check of process termination */
     for (p8inc = 0; p8inc < 4; p8inc++) {
         /* Reset semaphores */ 
@@ -573,7 +576,6 @@ void p5() {
 
 void p5a() {
     /* generage a TLB exception after a TLB-Refill event */
-
     p5MemLocation  = (memaddr *)0x80000000;
     *p5MemLocation = 42;
 }
