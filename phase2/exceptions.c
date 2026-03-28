@@ -5,7 +5,10 @@
 
 #include "./headers/exceptions.h"
 #include "./print.h"
+<<<<<<< HEAD
 #include "headers/constants.h"
+=======
+>>>>>>> gabriele
 #include <uriscv/const.h>
 
 static void createProcess(state_t *savedState);
@@ -49,24 +52,33 @@ void syscallHandler(void) {
     int syscallNum = (int)savedState->reg_a0;
     int kernelMode = IS_KERNEL_MODE(savedState->status);
 
+<<<<<<< HEAD
     // termprint_direct("[SYS] num=");
     // print_hex((unsigned int)syscallNum);
     // termprint_direct(" kern=");
     // print_hex((unsigned int)kernelMode);
     // termprint_direct("\n");
 
+=======
+>>>>>>> gabriele
     savedState->pc_epc += WORDLEN;
 
     if (syscallNum < 0) {
         if (!kernelMode) {
+<<<<<<< HEAD
             // termprint_direct("[SYS] -> PRIVINSTR (user mode)\n");
+=======
+>>>>>>> gabriele
             savedState->cause = (savedState->cause & CLEAREXECCODE) | (PRIVINSTR << CAUSESHIFT);
             programTrapHandler();
             return;
         }
         switch (syscallNum) {
             case CREATEPROCESS:
+<<<<<<< HEAD
                 // termprint_direct("[SYS] -> createProcess\n");
+=======
+>>>>>>> gabriele
                 createProcess(savedState);
                 break;
             case TERMPROCESS:
@@ -106,15 +118,21 @@ void syscallHandler(void) {
                 yield(savedState);
                 break;
             default:
+<<<<<<< HEAD
                 // termprint_direct("[SYS] -> default PRIVINSTR num=");
                 // print_hex((unsigned int)syscallNum);
                 // termprint_direct("\n");
+=======
+>>>>>>> gabriele
                 savedState->cause = (savedState->cause & CLEAREXECCODE) | (PRIVINSTR << CAUSESHIFT);
                 programTrapHandler();
                 break;
         }
     } else {
+<<<<<<< HEAD
         // termprint_direct("[SYS] -> passUpOrDie (num>=1)\n");
+=======
+>>>>>>> gabriele
         passUpOrDie(GENERALEXCEPT, savedState);
     }
 }
@@ -146,7 +164,10 @@ static void createProcess(state_t *savedState) {
     support_t *supportPtr = (support_t *) savedState->reg_a3;
     pcb_t *newPcb = allocPcb();
     if (newPcb == NULL) {
+<<<<<<< HEAD
         // termprint_direct("[createProcess] FAIL no PCB\n");
+=======
+>>>>>>> gabriele
         savedState->reg_a0 = (unsigned int) -1;
         LDST(savedState);
         return;
@@ -159,13 +180,17 @@ static void createProcess(state_t *savedState) {
     insertChild(currentProcess, newPcb);
     insertProcQ(&readyQueue, newPcb);
     processCount++;
+<<<<<<< HEAD
     // termprint_direct("[createProcess] OK pid=");
     // print_hex((unsigned int)newPcb->p_pid);
     // termprint_direct("\n");
+=======
+>>>>>>> gabriele
     savedState->reg_a0 = (unsigned int) newPcb->p_pid;
     LDST(savedState);
 }
 
+<<<<<<< HEAD
 /* Ricerca ricorsiva di un processo per PID all'interno dell'intero albero */
 static pcb_t* findProcessByPid(pcb_t *node, int pid) {
     if (node == NULL) return NULL;
@@ -179,6 +204,8 @@ static pcb_t* findProcessByPid(pcb_t *node, int pid) {
     return NULL;
 }
 
+=======
+>>>>>>> gabriele
 static void terminateProcess(state_t *savedState) {
     int targetPid = (int) savedState->reg_a1;
 
@@ -186,6 +213,7 @@ static void terminateProcess(state_t *savedState) {
         terminateProcessTree(currentProcess);
         currentProcess = NULL;
     } else {
+<<<<<<< HEAD
         // 1. Risali fino alla radice dell'albero dei processi
         pcb_t *root = currentProcess;
         if (root != NULL) {
@@ -197,6 +225,23 @@ static void terminateProcess(state_t *savedState) {
         // 2. Cerca il processo target esplorando tutto l'albero
         pcb_t *target = findProcessByPid(root, targetPid);
 
+=======
+        pcb_t *target = NULL;
+        pcb_t *iter;
+        list_for_each_entry(iter, &readyQueue, p_list) {
+            if (iter->p_pid == targetPid) {
+                target = iter;
+                break;
+            }
+        }
+        if (target == NULL && currentProcess != NULL && currentProcess->p_pid == targetPid) {
+            target = currentProcess;
+        }
+        if (target == NULL) {
+            /* Process not in readyQueue or currentProcess: search blocked processes in ASL */
+            target = searchBlockedPcb(targetPid);
+        }
+>>>>>>> gabriele
         if (target != NULL) {
             if (target == currentProcess) {
                 terminateProcessTree(currentProcess);
@@ -210,16 +255,23 @@ static void terminateProcess(state_t *savedState) {
             }
         }
     }
+<<<<<<< HEAD
     
+=======
+>>>>>>> gabriele
     scheduler();
 }
 
 static void passeren(state_t *savedState) {
     int *semAddr = (int *) savedState->reg_a1;
     (*semAddr)--;
+<<<<<<< HEAD
 
     if (*semAddr < 0) {
         // termprint_direct("[passeren] BLOCK -> scheduler\n");
+=======
+    if (*semAddr < 0) {
+>>>>>>> gabriele
         updateCPUTime();
         currentProcess->p_s = *savedState;
         insertBlocked(semAddr, currentProcess);
@@ -231,7 +283,10 @@ static void passeren(state_t *savedState) {
         currentProcess = NULL;
         scheduler();
     } else {
+<<<<<<< HEAD
         // termprint_direct("[passeren] PASS\n");
+=======
+>>>>>>> gabriele
         LDST(savedState);
     }
 }
@@ -239,9 +294,12 @@ static void passeren(state_t *savedState) {
 static void verhogen(state_t *savedState) {
     int *semAddr = (int *) savedState->reg_a1;
     (*semAddr)++;
+<<<<<<< HEAD
     // termprint_direct("[verhogen] sem=");
     // print_hex((unsigned int)*semAddr);
     // termprint_direct("\n");
+=======
+>>>>>>> gabriele
     if (*semAddr <= 0) {
         pcb_t *unblocked = removeBlocked(semAddr);
         if (unblocked != NULL) {
@@ -265,6 +323,7 @@ static void doIO(state_t *savedState) {
     int commandValue = (int) savedState->reg_a2;
     int semIdx = getSemaphoreIndex(commandAddr);
 
+<<<<<<< HEAD
     // termprint_direct("[doIO] semIdx=");
     // print_hex((unsigned int)semIdx);
     // termprint_direct(" cmdAddr=");
@@ -273,6 +332,8 @@ static void doIO(state_t *savedState) {
     // print_hex((unsigned int)commandValue);
     // termprint_direct("\n");
 
+=======
+>>>>>>> gabriele
     /* 1. Salva stato e tempo del processo corrente */
     updateCPUTime();
     currentProcess->p_s = *savedState;
@@ -282,11 +343,14 @@ static void doIO(state_t *savedState) {
     insertBlocked(&deviceSemaphores[semIdx], currentProcess);
     softBlockCount++;
 
+<<<<<<< HEAD
     // termprint_direct("[doIO] blocked pid=");
     // print_hex((unsigned int)currentProcess->p_pid);
     // termprint_direct(" sem=");
     // print_hex((unsigned int)deviceSemaphores[semIdx]);
     // termprint_direct("\n");
+=======
+>>>>>>> gabriele
 
     /* 3. Solo ORA togli il currentProcess */
     currentProcess = NULL;
@@ -311,7 +375,11 @@ static void getCPUTime(state_t *savedState) {
 }
 
 static void waitForClock(state_t *savedState) {
+<<<<<<< HEAD
     // termprint_direct("[waitForClock] BLOCK -> scheduler\n");
+=======
+    for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
+>>>>>>> gabriele
     updateCPUTime();
     currentProcess->p_s = *savedState;
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX]--;
@@ -351,12 +419,18 @@ static void yield(state_t *savedState) {
 
 static void passUpOrDie(int exceptionType, state_t *savedState) {
     if (currentProcess->p_supportStruct == NULL) {
+<<<<<<< HEAD
         termprint_direct("[PUOD] verso lo scheduler\n");
+=======
+>>>>>>> gabriele
         terminateProcessTree(currentProcess);
         currentProcess = NULL;
         scheduler();
     } else {
+<<<<<<< HEAD
         termprint_direct("[PUOD] verso LDCXT\n");
+=======
+>>>>>>> gabriele
         currentProcess->p_supportStruct->sup_exceptState[exceptionType] = *savedState;
         context_t *ctx = &currentProcess->p_supportStruct->sup_exceptContext[exceptionType];
         LDCXT(ctx->stackPtr, ctx->status, ctx->pc);
@@ -374,6 +448,7 @@ static void terminateProcessTree(pcb_t *root) {
     if (root == currentProcess) {
         /* nop */
     } else if (root->p_semAdd != NULL) {
+<<<<<<< HEAD
         int *sem = root->p_semAdd; // Salva il puntatore al semaforo
         
         outBlocked(root); // Rimuove il processo dalla coda
@@ -384,7 +459,16 @@ static void terminateProcessTree(pcb_t *root) {
         int *base = &deviceSemaphores[0];
         int *end = &deviceSemaphores[SEMDEVLEN];
         if (sem >= base && sem < end) { 
+=======
+        int *sem = root->p_semAdd;
+        outBlocked(root);
+        int *base = &deviceSemaphores[0];
+        int *end = &deviceSemaphores[SEMDEVLEN];
+        if (sem >= base && sem < end) {
+>>>>>>> gabriele
             softBlockCount--;
+        } else {
+            (*sem)++; /* restore user semaphore: killed process no longer occupies a P slot */
         }
     } else {
         outProcQ(&readyQueue, root);

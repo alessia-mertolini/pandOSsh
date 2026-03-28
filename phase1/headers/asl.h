@@ -23,4 +23,7 @@ pcb_t* outBlocked(pcb_t* p);
 // Return the first blocked PCB of the semaphore with key "semAdd"
 pcb_t* headBlocked(int* semAdd);
 
+// Search the ASL for a blocked process with the given PID; returns its PCB or NULL
+pcb_t* searchBlockedPcb(int pid);
+
 #endif
