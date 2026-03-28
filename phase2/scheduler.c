@@ -95,7 +95,7 @@ void scheduler(void) {
      * CASO 4: processCount > 0 && softBlockCount == 0 -> DEADLOCK
      * ---------------------------------------------------------------- */
     if (processCount > 0 && softBlockCount == 0) {
-        termprint_direct("Process count = "); print_hex(processCount);
+        termprint_direct("sono qui");
         PANIC();
     }
     HALT();

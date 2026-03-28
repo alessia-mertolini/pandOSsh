@@ -32,7 +32,7 @@ Qui vengono lanciati svariati processi in parallelo. L'ordine esatto può variar
 * `p9 starts`
 * `p10 starts`
 * `hp_p1 ends`
-* `p1 knows p5 ended`
+* `p1 knows p5 ended`"
 
 ### Fase Finale (Albero dei Processi p8)
 Il processo principale verificherà per **4 volte consecutive** la corretta terminazione di un intero albero di processi. Pertanto, **il blocco seguente verrà stampato 4 volte**:
