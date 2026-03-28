@@ -47,21 +47,3 @@ Il processo principale verificherà per **4 volte consecutive** la corretta term
 ### Conclusione
 Se il kernel sopravvive a tutte le uccisioni di processi, page fault e system call errate, stamperà questo messaggio trionfale prima di terminare sé stesso.
 * `p1 finishes OK -- TTFN`
-
-
-TERM (0) `hp_p1 starts`
-[!] TERM (0) `hp_p2 starts`
-[!] TERM (0) `first incarnation of p4 starts`
-[!] TERM (0) `p5 starts`
-[!] TERM (0) `p6 starts`
-[!] TERM (0) `p7 starts`
-[!] TERM (0) `p9 starts`
-[!] TERM (0) `hp_p1 ends`
-[!] TERM (0) `hp_p2 ends`
-[!] TERM (0) `second incarnation of p4 starts`
-[!] TERM (0) `Bus Error (as expected): Access non-existent memory`
-[!] TERM (0) `p10 starts`
-[!] TERM (0) `p4 is OK`
-[!] TERM (0) `Address Error (as expected): non-kuseg access w/KU=1`
-[!] TERM (0) `High level SYS call from kernel mode process`
-[!] TERM (0) `p1 knows p5 ended`
