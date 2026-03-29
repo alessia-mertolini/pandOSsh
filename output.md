@@ -1,3 +1,4 @@
+uriscv
 [!] TERM (0) `p1 v(sem_testsem)`
 [!] TERM (0) `p2 was started`
 [!] TERM (0) `p2 starts`
@@ -17,8 +18,11 @@
 [!] TERM (0) `hp_p2 ends`
 [!] TERM (0) `second incarnation of p4 starts`
 [!] TERM (0) `Bus Error (as expected): Access non-existent memory`
+ADDRESS IN KSEG0 - TLBFLOOR 80000000
 [!] TERM (0) `p10 starts`
 [!] TERM (0) `p4 is OK`
+[!] TERM (0) `memory management trap`
+[!] TERM (0) `Correct Support Structure Address`
 [!] TERM (0) `Address Error (as expected): non-kuseg access w/KU=1`
 [!] TERM (0) `High level SYS call from kernel mode process`
 [!] TERM (0) `p1 knows p5 ended`
