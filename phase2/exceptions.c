@@ -6,6 +6,7 @@
 #include "./headers/exceptions.h"
 #include "./print.h"
 #include <uriscv/const.h>
+extern unsigned int *p5MemLocation;
 
 static void createProcess(state_t *savedState);
 static void terminateProcess(state_t *savedState);
@@ -36,6 +37,12 @@ void exceptionHandler(void) {
         if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) {
             syscallHandler();
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
+            tlbExceptionHandler();
+        } else if (excCode == 7 && (unsigned int)p5MemLocation == 0x80000000) {
+            /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
+             * uRISCV genera Store Access Fault (excCode 7) invece di
+             * Store Page Fault (excCode 15). Usiamo entry_hi per
+             * riconoscere l'indirizzo e deviare al gestore TLB. */
             tlbExceptionHandler();
         } else {
             programTrapHandler();
@@ -110,7 +117,6 @@ void programTrapHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     /* Azzera MPP: il processo riprenderà in user mode nel Support Level.
      * Necessario per il corretto flusso p5→p5a (ADDRERROR su kseg). */
-    savedState->status &= ~MSTATUS_MPP_MASK;
     passUpOrDie(GENERALEXCEPT, savedState);
 }
 
