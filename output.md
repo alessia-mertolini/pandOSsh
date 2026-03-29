@@ -1,6 +1,4 @@
 [!] TERM (0) `p1 v(sem_testsem)`
-[!] TERM (0) `p[P] BLOCK user sem=0x20007034 val=-1 cnt=2`
-[!] TERM (0) `p1 v(sem_testsem)`
 [!] TERM (0) `p2 was started`
 [!] TERM (0) `p2 starts`
 [!] TERM (0) `p2 v's successfully`
@@ -24,3 +22,33 @@
 [!] TERM (0) `Address Error (as expected): non-kuseg access w/KU=1`
 [!] TERM (0) `High level SYS call from kernel mode process`
 [!] TERM (0) `p1 knows p5 ended`
+[!] TERM (0) `p8root starts`
+[!] TERM (0) `child1 starts`
+[!] TERM (0) `child2 starts`
+[!] TERM (0) `leaf process (1) starts`
+[!] TERM (0) `leaf process (2) starts`
+[!] TERM (0) `leaf process (3) starts`
+[!] TERM (0) `leaf process (4) starts`
+[!] TERM (0) `p8root starts`
+[!] TERM (0) `child1 starts`
+[!] TERM (0) `child2 starts`
+[!] TERM (0) `leaf process (1) starts`
+[!] TERM (0) `leaf process (2) starts`
+[!] TERM (0) `leaf process (3) starts`
+[!] TERM (0) `leaf process (4) starts`
+[!] TERM (0) `p8root starts`
+[!] TERM (0) `child1 starts`
+[!] TERM (0) `child2 starts`
+[!] TERM (0) `leaf process (1) starts`
+[!] TERM (0) `leaf process (2) starts`
+[!] TERM (0) `leaf process (3) starts`
+[!] TERM (0) `leaf process (4) starts`
+[!] TERM (0) `p8root starts`
+[!] TERM (0) `child1 starts`
+[!] TERM (0) `child2 starts`
+[!] TERM (0) `leaf process (1) starts`
+[!] TERM (0) `leaf process (2) starts`
+[!] TERM (0) `leaf process (3) starts`
+[!] TERM (0) `leaf process (4) starts`
+[!] TERM (0) `p1 finishes OK -- TTFN`
+[!] TERM (0) `System halted `
