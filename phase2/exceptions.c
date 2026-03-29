@@ -39,9 +39,10 @@ void exceptionHandler(void) {
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
             tlbExceptionHandler();
         } else if (excCode == 7 && (unsigned int)p5MemLocation == 0x80000000) {
-            /* WORKAROUND URISCV: p5a genera un BusError, ma getBADVADDR() 
-             * fallisce. Leggiamo direttamente la variabile globale del test
-             * per deviare l'eccezione al gestore TLB! */
+            /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
+             * uRISCV genera Store Access Fault (excCode 7) invece di
+             * Store Page Fault (excCode 15). Usiamo entry_hi per
+             * riconoscere l'indirizzo e deviare al gestore TLB. */
             tlbExceptionHandler();
         } else {
             programTrapHandler();
