@@ -4,9 +4,7 @@
  * ========================================================================= */
 
 #include "./headers/exceptions.h"
-#include "./print.h"
 #include <uriscv/const.h>
-extern unsigned int *p5MemLocation;
 
 static void createProcess(state_t *savedState);
 static void terminateProcess(state_t *savedState);
@@ -36,13 +34,7 @@ void exceptionHandler(void) {
         unsigned int excCode = CAUSE_EXCCODE(cause);
         if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) {
             syscallHandler();
-        } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
-            tlbExceptionHandler();
-        } else if (excCode == 7 && (unsigned int)p5MemLocation == 0x80000000) {
-            /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
-             * uRISCV genera Store Access Fault (excCode 7) invece di
-             * Store Page Fault (excCode 15). Usiamo entry_hi per
-             * riconoscere l'indirizzo e deviare al gestore TLB. */
+        } else if ((excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) || excCode == 7) { // excCode == 7 e' l'espediente usato per forzare il codice nel pagefault
             tlbExceptionHandler();
         } else {
             programTrapHandler();
@@ -68,39 +60,30 @@ void syscallHandler(void) {
                 createProcess(savedState);
                 break;
             case TERMPROCESS:
-                // termprint_direct("[SYS] -> terminateProcess\n");
                 terminateProcess(savedState);
                 break;
             case PASSEREN:
-                // termprint_direct("\t\t[SYS] -> passeren\n");
                 passeren(savedState);
                 break;
             case VERHOGEN:
-                // termprint_direct("[SYS] -> verhogen\n");
                 verhogen(savedState);
                 break;
             case DOIO:
-                // termprint_direct("[SYS] -> doIO\n");
                 doIO(savedState);
                 break;
             case GETTIME:
-                // termprint_direct("[SYS] -> getCPUTime\n");
                 getCPUTime(savedState);
                 break;
             case CLOCKWAIT:
-                // termprint_direct("[SYS] -> waitForClock\n");
                 waitForClock(savedState);
                 break;
             case GETSUPPORTPTR:
-                // termprint_direct("[SYS] -> getSupportData\n");
                 getSupportData(savedState);
                 break;
             case GETPROCESSID:
-                // termprint_direct("[SYS] -> getProcessID\n");
                 getProcessID(savedState);
                 break;
             case YIELD:
-                // termprint_direct("[SYS] -> yield\n");
                 yield(savedState);
                 break;
             default:
@@ -121,7 +104,6 @@ void programTrapHandler(void) {
 }
 
 void tlbExceptionHandler(void) {
-    // termprint_direct("[TLB] tlbExceptionHandler\n");
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
 
     unsigned int excCode = CAUSE_EXCCODE(savedState->cause);
@@ -218,9 +200,6 @@ static void verhogen(state_t *savedState) {
     if (*semAddr <= 0) {
         pcb_t *unblocked = removeBlocked(semAddr);
         if (unblocked != NULL) {
-            // termprint_direct("[verhogen] unblocked pid=");
-            // print_hex((unsigned int)unblocked->p_pid);
-            // termprint_direct("\n");
             unblocked->p_semAdd = NULL;
             int *base = &deviceSemaphores[0];
             int *end  = &deviceSemaphores[SEMDEVLEN];
@@ -271,7 +250,7 @@ static void getCPUTime(state_t *savedState) {
 }
 
 static void waitForClock(state_t *savedState) {
-    for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
+    //for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
     updateCPUTime();
     currentProcess->p_s = *savedState;
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX]--;
@@ -301,7 +280,6 @@ static void getProcessID(state_t *savedState) {
 }
 
 static void yield(state_t *savedState) {
-    // termprint_direct("[yield] -> scheduler\n");
     updateCPUTime();
     currentProcess->p_s = *savedState;
     insertProcQ(&readyQueue, currentProcess);
