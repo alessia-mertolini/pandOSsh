@@ -1,10 +1,8 @@
 /* =========================================================================
  * exceptions.c  –  Phase 2: Nucleus Exception & SYSCALL Handlers
- * [DEBUG VERSION]
  * ========================================================================= */
 
 #include "./headers/exceptions.h"
-#include "./print.h"
 #include <uriscv/const.h>
 extern unsigned int *p5MemLocation;
 
@@ -19,12 +17,12 @@ static void getSupportData(state_t *savedState);
 static void getProcessID(state_t *savedState);
 static void yield(state_t *savedState);
 
-void *memcpy(void *dst, const void *src, unsigned int n) {
-    unsigned char *d = (unsigned char *)dst;
-    const unsigned char *s = (const unsigned char *)src;
-    while (n--) *d++ = *s++;
-    return dst;
-}
+// void *memcpy(void *dst, const void *src, unsigned int n) {
+//     unsigned char *d = (unsigned char *)dst;
+//     const unsigned char *s = (const unsigned char *)src;
+//     while (n--) *d++ = *s++;
+//     return dst;
+// }
 
 void exceptionHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
