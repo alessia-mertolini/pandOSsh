@@ -114,9 +114,9 @@ void syscallHandler(void) {
 }
 
 void programTrapHandler(void) {
-    state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
-    /* Azzera MPP: il processo riprenderà in user mode nel Support Level.
-     * Necessario per il corretto flusso p5→p5a (ADDRERROR su kseg). */
+    state_t *savedState = GET_EXCEPTION_STATE_PTR(0); //qui non si può fare savedState->status &= ~MSTATUS_MPP_MASK; 
+    //perché sarebbe come mentire al PassUpOrDie, alterando la natura del processo. Il nucleo non decide queste cose, le decide il 
+    //livello di supporto, ovvero il p2test
     passUpOrDie(GENERALEXCEPT, savedState);
 }
 

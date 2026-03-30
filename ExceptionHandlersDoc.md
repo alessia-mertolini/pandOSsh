@@ -134,6 +134,16 @@ void p5a() {
    → scrittura a `0x80000000` → TLB miss → refill invalido → excCode 7
    → **loop infinito**.
 
+   ```
+    p5() scrive a 0x80000000 ==SI RITORNA QUI==
+    └─ TLB miss → uTLB_RefillHandler (entry invalida)
+        └─ retry write → exCode 7
+            └─ programTrapHandler → passUpOrDie(GENERALEXCEPT)
+                └─ p5gen(), case BUSERROR
+                    └─ PC = p5a ==INIZIO LOOP ==
+
+   ```
+
 5. **Con workaround**: il kernel controlla se `p5MemLocation == 0x80000000`.
    Questo e' vero solo dopo che `p5a` ha eseguito la prima assegnazione.
    Quindi:
