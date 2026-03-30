@@ -20,6 +20,7 @@
 
 #include <uriscv/liburiscv.h>
 #include <uriscv/types.h>
+#include <uriscv/const.h>
 
 //Prototipi funzioni di supporto
 //-------

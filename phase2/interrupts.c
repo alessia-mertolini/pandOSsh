@@ -9,7 +9,6 @@
  */
 
 #include "./headers/interrupts.h"
-#include "headers/scheduler.h"
 
 static inline state_t *getSavedExceptionState() {
     int cpuId = getPRID();

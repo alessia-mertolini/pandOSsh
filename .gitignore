@@ -8,5 +8,6 @@ build/
 *.uriscv
 .vscode/
 .idea/
+headers/listx.h
 klog.c
 CMakeLists.txt

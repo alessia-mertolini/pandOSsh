@@ -5,6 +5,7 @@
 
 #include "./headers/exceptions.h"
 #include <uriscv/const.h>
+extern unsigned int *p5MemLocation;
 
 static void createProcess(state_t *savedState);
 static void terminateProcess(state_t *savedState);
@@ -34,7 +35,7 @@ void exceptionHandler(void) {
         unsigned int excCode = CAUSE_EXCCODE(cause);
         if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) {
             syscallHandler();
-        } else if ((excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) || excCode == 7) { // excCode == 7 e' l'espediente usato per forzare il codice nel pagefault
+        } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
             tlbExceptionHandler();
         } else {
             programTrapHandler();
@@ -105,13 +106,7 @@ void programTrapHandler(void) {
 
 void tlbExceptionHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
-
-    unsigned int excCode = CAUSE_EXCCODE(savedState->cause);
-    if (excCode == 7 && getBADVADDR() == 0x80000000) {
-        passUpOrDie(PGFAULTEXCEPT, savedState);
-        return;
-    }
-
+    
     passUpOrDie(PGFAULTEXCEPT, savedState);
 }
 
@@ -165,10 +160,6 @@ static void terminateProcess(state_t *savedState) {
                 currentProcess = NULL;
             } else {
                 terminateProcessTree(target);
-                // Nota: se il currentProcess fa parte del sottoalbero eliminato 
-                // (es. p10 che uccide p9), il suo PCB verrà distrutto.
-                // Fortunatamente lo scheduler() si occuperà in automatico 
-                // di resettare currentProcess = NULL.
             }
         }
     }
@@ -250,7 +241,7 @@ static void getCPUTime(state_t *savedState) {
 }
 
 static void waitForClock(state_t *savedState) {
-    //for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
+    for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
     updateCPUTime();
     currentProcess->p_s = *savedState;
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX]--;
