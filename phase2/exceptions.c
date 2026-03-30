@@ -4,6 +4,7 @@
  * ========================================================================= */
 
 #include "./headers/exceptions.h"
+#include "./print.h"
 #include <uriscv/const.h>
 extern unsigned int *p5MemLocation;
 
@@ -36,6 +37,12 @@ void exceptionHandler(void) {
         if (excCode == SYSEXCEPTION || excCode == EXC_SYSCALL_U) {
             syscallHandler();
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) {
+            tlbExceptionHandler();
+        } else if (excCode == 7 && (unsigned int)p5MemLocation == 0x80000000) {
+            /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
+             * uRISCV genera Store Access Fault (excCode 7) invece di
+             * Store Page Fault (excCode 15). Usiamo entry_hi per
+             * riconoscere l'indirizzo e deviare al gestore TLB. */
             tlbExceptionHandler();
         } else {
             programTrapHandler();
@@ -106,7 +113,6 @@ void programTrapHandler(void) {
 
 void tlbExceptionHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
-    
     passUpOrDie(PGFAULTEXCEPT, savedState);
 }
 

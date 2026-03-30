@@ -1,8 +1,8 @@
 /* -----------------------------------------------------------------------
  * scheduler.c - PandOSsh Phase 2 - Scheduler
  *
- * Implementa lo scheduler round-robin preemptivo con time slice di 5ms
- * tramite il Processor Local Timer (PLT).
+ * Implementazione di un preemptive round-robin scheduler con time slice di 5ms
+ * tramite Processor Local Timer (PLT).
  *
  * ALGORITMO DI DISPATCH:
  *   1. Prende il PCB in testa alla readyQueue (priorità massima).
@@ -24,17 +24,11 @@
  * ----------------------------------------------------------------------- */
 
 #include "./headers/scheduler.h"
-#include "./print.h"
 
-/* -----------------------------------------------------------------------
- * Definizione di start_tod (dichiarata extern in scheduler.h)
- * ----------------------------------------------------------------------- */
+// Definizione di Start Time Of Dispatch, dichiarata extern in scheduler.h
 cpu_t start_tod;
 
 
-/* -----------------------------------------------------------------------
- * scheduler()
- * ----------------------------------------------------------------------- */
 void scheduler(void) {
     currentProcess = NULL;
 
@@ -55,6 +49,7 @@ void scheduler(void) {
         /* Dispatch: carica il processor state del processo.
          * LDST non ritorna. */
         LDST(&(currentProcess->p_s)); 
+
         /*UNREACHABLE*/
     }
 
@@ -84,7 +79,7 @@ void scheduler(void) {
         status |= MSTATUS_MIE_MASK;
         setSTATUS(status);
 
-        /* Idle: attende il prossimo interrupt (device o Interval Timer).
+        /* Attende il prossimo interrupt (device o Interval Timer).
          * L'exception handler riprenderà il controllo e chiamerà di
          * nuovo scheduler(). WAIT non ritorna. */
         WAIT();
