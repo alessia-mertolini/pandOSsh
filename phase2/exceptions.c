@@ -9,7 +9,7 @@
 #include "./headers/exceptions.h"
 #include "headers/scheduler.h"
 #include <uriscv/const.h>
-extern unsigned int *p5MemLocation;
+#include <uriscv/liburiscv.h>
 
 static void createProcess(state_t *savedState);
 static void terminateProcess(state_t *savedState);
@@ -36,6 +36,10 @@ void *memcpy(void *dst, const void *src, unsigned int n) {
 
 // Gestore delle eccezioni
 void exceptionHandler(void) {
+    if (currentProcess != NULL) {
+        updateCPUTime(); 
+    }
+
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     unsigned int cause = savedState->cause;
 
@@ -47,14 +51,14 @@ void exceptionHandler(void) {
             syscallHandler();
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) { // l'eccezione e' un page fault
             tlbExceptionHandler();
-        } 
-        else if (excCode == 7 && (unsigned int)p5MemLocation == 0x80000000) {
-            /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
-             * uRISCV genera Store Access Fault (excCode 7) invece di
-             * Store Page Fault (excCode 15). Usiamo entry_hi per
-             * riconoscere l'indirizzo e deviare al gestore TLB. */
-            tlbExceptionHandler();
-        } 
+        }
+            // } else if (excCode == 7 && getBADVADDR() >= 0x80000000U) {
+        //     /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
+        //      * uRISCV genera Store Access Fault (excCode 7) invece di
+        //      * Store Page Fault (excCode 15). Usiamo entry_hi per
+        //      * riconoscere l'indirizzo e deviare al gestore TLB. */
+        //     tlbExceptionHandler();
+        // } 
         else { // Trap per i codici 0-7, 9, 10, 12-23
             programTrapHandler();
         }
@@ -122,6 +126,15 @@ void programTrapHandler(void) {
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0); //qui non si può fare savedState->status &= ~MSTATUS_MPP_MASK; 
     //perché sarebbe come mentire al PassUpOrDie, alterando la natura del processo. Il nucleo non decide queste cose, le decide il 
     //livello di supporto, ovvero il p2test
+    unsigned int cause = savedState->cause;
+    unsigned int excCode = CAUSE_EXCCODE(cause);
+    if (excCode == 7 && getBADVADDR() >= 0x80000000U) {
+            /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
+             * uRISCV genera Store Access Fault (excCode 7) invece di
+             * Store Page Fault (excCode 15). Usiamo entry_hi per
+             * riconoscere l'indirizzo e deviare al gestore TLB. */
+            tlbExceptionHandler();
+        } 
     passUpOrDie(GENERALEXCEPT, savedState);
 }
 
@@ -216,7 +229,7 @@ static void passeren(state_t *savedState) {
     (*semAddr)--; // P
 
     if (*semAddr < 0) { // il semaforo era <= 0, facendo una P blocco il processo -> caso bloccante
-        updateCPUTime();
+        // updateCPUTime();
         currentProcess->p_s = *savedState;
         insertBlocked(semAddr, currentProcess);
         int *base = &deviceSemaphores[0];
@@ -260,7 +273,7 @@ static void doIO(state_t *savedState) {
     int semIdx = getSemaphoreIndex(commandAddr);
 
     /* Salviamo stato e tempo del processo corrente */
-    updateCPUTime();
+    // updateCPUTime();
     currentProcess->p_s = *savedState;
 
     /* Blocchiamo il processo sul semaforo del device */
@@ -284,17 +297,19 @@ static void doIO(state_t *savedState) {
 
 // NSYS6
 static void getCPUTime(state_t *savedState) {
-    cpu_t currentTOD;
-    STCK(currentTOD);
-    cpu_t totalTime = currentProcess->p_time + (currentTOD - start_tod);
-    savedState->reg_a0 = (unsigned int) totalTime;
+    // cpu_t currentTOD;
+    // STCK(currentTOD);
+    // cpu_t totalTime = currentProcess->p_time + (currentTOD - start_tod);
+    // savedState->reg_a0 = (unsigned int) totalTime;
+    // LDST(savedState);
+    savedState->reg_a0 = (unsigned int) currentProcess->p_time; // con le modifiche apportate e lo spostamento di updateCPUTime a questo punto nel registro si trova gia' il valore corretto
     LDST(savedState);
 }
 
 // NSYS7
 static void waitForClock(state_t *savedState) {
     //for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
-    updateCPUTime();
+    // updateCPUTime();
     currentProcess->p_s = *savedState;
 
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX]--; // P su semaforo dello pseudo-clock
@@ -328,12 +343,12 @@ static void getProcessID(state_t *savedState) {
 
 // NSYS10
 static void yield(state_t *savedState) {
-    updateCPUTime();
+    // updateCPUTime();
     currentProcess->p_s = *savedState;
 
     insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL;
-    
+
     scheduler();
 }
 
@@ -354,12 +369,14 @@ static void terminateProcessTree(pcb_t *root) {
         pcb_t *child = removeChild(root);
         terminateProcessTree(child);
     }
-    if (root->p_parent != NULL) {
+
+    if (root->p_parent != NULL) { // rendiamo il processo orfano
         outChild(root);
     }
-    if (root == currentProcess) {
+
+    if (root == currentProcess) { // e' il processo in esecuzone
         currentProcess = NULL;
-    } else if (root->p_semAdd != NULL) {
+    } else if (root->p_semAdd != NULL) { // e' un processo bloccato
         int *sem = root->p_semAdd;
         outBlocked(root);
         int *base = &deviceSemaphores[0];
@@ -369,7 +386,7 @@ static void terminateProcessTree(pcb_t *root) {
         } else {
             (*sem)++; /* restore user semaphore: killed process no longer occupies a P slot */
         }
-    } else {
+    } else { // e' un processo ready
         outProcQ(&readyQueue, root);
     }
     processCount--;
