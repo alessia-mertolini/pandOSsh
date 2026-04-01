@@ -3,7 +3,7 @@
 #define LISTX_H_INCLUDED
 
 #ifndef NULL
-#define NULL ((void *)0)
+#define NULL 0
 #endif
 typedef unsigned int size_tt;
 
@@ -101,11 +101,11 @@ static inline void INIT_LIST_HEAD(struct list_head *list) {
     prev: elemento che deve precedere new
     next: elemento che deve seguire new
 */
-static inline void __list_add(struct list_head *new, struct list_head *prev, struct list_head *next) {
-    next->prev = new;
-    new->next  = next;
-    new->prev  = prev;
-    prev->next = new;
+static inline void __list_add(struct list_head *new_node, struct list_head *prev, struct list_head *next) {
+    next->prev = new_node;
+    new_node->next  = next;
+    new_node->prev  = prev;
+    prev->next = new_node;
 }
 
 /*
@@ -116,8 +116,8 @@ static inline void __list_add(struct list_head *new, struct list_head *prev, str
 
     return: void
 */
-static inline void list_add(struct list_head *new, struct list_head *head) {
-    __list_add(new, head, head->next);
+static inline void list_add(struct list_head *new_node, struct list_head *head) {
+    __list_add(new_node, head, head->next);
 }
 
 /*
@@ -128,8 +128,8 @@ static inline void list_add(struct list_head *new, struct list_head *head) {
 
     return: void
 */
-static inline void list_add_tail(struct list_head *new, struct list_head *head) {
-    __list_add(new, head->prev, head);
+static inline void list_add_tail(struct list_head *new_node, struct list_head *head) {
+    __list_add(new_node, head->prev, head);
 }
 
 /*

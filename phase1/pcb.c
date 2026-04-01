@@ -151,7 +151,7 @@ pcb_t* removeChild(pcb_t* p) {
         tmp = p->p_child.next;  // first child
         list_del(tmp);
 
-        child = container_of(tmp, pcb_t, p_child);
+        child = container_of(tmp, pcb_t, p_sib);
 
         child->p_parent = NULL;     // isolo il child rimosso
         INIT_LIST_HEAD(&child->p_sib);

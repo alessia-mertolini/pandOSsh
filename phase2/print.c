@@ -1,6 +1,3 @@
-#include <uriscv/liburiscv.h>
-#include "../headers/const.h"
-
 /* -------------------------------------------------------------------------
  * Costanti hardware del terminale 0
  * Stessa logica di p1test.c: accesso diretto ai registri del device.
@@ -11,6 +8,8 @@
 #define PRINTCHR_CMD    2
 #define TRANSMITTED     5
 #define STATUSMASK      0xFF
+#include "../headers/const.h"
+#include <uriscv/liburiscv.h>
 
 /* -------------------------------------------------------------------------
  * termprint_direct() - stampa SENZA usare SYSCALL
@@ -20,7 +19,6 @@
  * Se questa funzione non stampa nulla → problema in initial.c/scheduler.
  * Se stampa → il kernel parte, il problema è nelle SYSCALL o negli interrupt.
  * ------------------------------------------------------------------------- */
- // static
 void termprint_direct(char *str) {
     volatile unsigned int *status  = (unsigned int *)(TERM0ADDR + TERM_TRANSM_STATUS);
     volatile unsigned int *command = (unsigned int *)(TERM0ADDR + TERM_TRANSM_CMD);
@@ -69,4 +67,22 @@ void print_hex(unsigned int n) {
     }
     buffer[10] = '\0';
     termprint_direct(buffer);
+}
+
+void print_dec(int n) {
+    char buffer[12]; /* "-2147483648" + '\0' */
+    int i = 11;
+    buffer[i] = '\0';
+    if (n == 0) {
+        buffer[--i] = '0';
+    } else {
+        int neg = (n < 0);
+        unsigned int u = neg ? (unsigned int)(-n) : (unsigned int)n;
+        while (u > 0) {
+            buffer[--i] = '0' + (u % 10);
+            u /= 10;
+        }
+        if (neg) buffer[--i] = '-';
+    }
+    termprint_direct(&buffer[i]);
 }

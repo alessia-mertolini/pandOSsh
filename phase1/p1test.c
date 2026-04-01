@@ -9,7 +9,7 @@
  *
  *		Aborts as soon as an error is detected.
  *
- * Modified by Michael Goldweber on May 15, 2004
+ *      Modified by Michael Goldweber on May 15, 2004
  */
 
 #include "../headers/const.h"
@@ -121,21 +121,12 @@ void adderrbuf(char *strp) {
 
 
 int main(void) {
-    // IMPORTANTE: 'i' serve per i cicli dell'ASL
     int i;
 
-    // IMPORTANTE: initPcbs() è NECESSARIO anche se testiamo solo ASL.
-    // L'ASL ha bisogno di allocare PCB tramite allocPcb() per fare i test.
-    // Se non inizializziamo i PCB, allocPcb() fallisce e il test ASL si rompe.
     initPcbs();
     addokbuf("Initialized process control blocks   \n");
 
-    /* * TUTTA LA SEZIONE SEGUENTE TESTA IL MODULO PCB (Code, Alberi, Allocazione).
-     * È STATA COMMENTATA PER TESTARE ESCLUSIVAMENTE IL MODULO ASL.
-     */
-
-    /*
-    // Check allocProc 
+    /* Check allocProc */
     for (i = 0; i < MAXPROC; i++) {
         if ((procp[i] = allocPcb()) == NULL)
             adderrbuf("allocPcb: unexpected NULL   \n");
@@ -145,12 +136,12 @@ int main(void) {
     }
     addokbuf("allocPcb ok   \n");
 
-    // return the last 10 entries back to free list 
+    /* return the last 10 entries back to free list */
     for (i = 10; i < MAXPROC; i++)
         freePcb(procp[i]);
     addokbuf("freed 10 entries   \n");
 
-    // create a 10-element process queue 
+    /* create a 10-element process queue */
     LIST_HEAD(qa);
     if (!emptyProcQ(&qa))
         adderrbuf("emptyProcQ: unexpected FALSE   \n");
@@ -178,7 +169,7 @@ int main(void) {
     if (emptyProcQ(&qa))
         adderrbuf("emptyProcQ: unexpected TRUE\n");
 
-    // Check outProc and headProc 
+    /* Check outProc and headProc */
     if (headProcQ(&qa) != firstproc)
         adderrbuf("headProcQ failed   \n");
     q = outProcQ(&qa, firstproc);
@@ -193,7 +184,7 @@ int main(void) {
         adderrbuf("outProcQ failed on nonexistent entry   \n");
     addokbuf("outProcQ ok   \n");
 
-    // Check if removeProc and insertProc remove in the correct order 
+    /* Check if removeProc and insertProc remove in the correct order */
     addokbuf("Removing...   \n");
     for (i = 0; i < 8; i++) {
         if ((q = removeProcQ(&qa)) == NULL)
@@ -222,21 +213,21 @@ int main(void) {
     p2bis->p_prio = 10;
     insertProcQ(&qa, p2bis);
 
-    pcb_t *p_test;
-    p_test = removeProcQ(&qa);
-    if (p_test != p1) {
+    pcb_t *p;
+    p = removeProcQ(&qa);
+    if (p != p1) {
         adderrbuf("removeProcQ: failed, wrong priority order for p1   \n");
     }
-    p_test = removeProcQ(&qa);
-    if (p_test != p2) {
+    p = removeProcQ(&qa);
+    if (p != p2) {
         adderrbuf("removeProcQ: failed, wrong priority order for p2   \n");
     }
-    p_test = removeProcQ(&qa);
-    if (p_test != p2bis) {
+    p = removeProcQ(&qa);
+    if (p != p2bis) {
         adderrbuf("removeProcQ: failed, wrong priority order for p2bis   \n");
     }
-    p_test = removeProcQ(&qa);
-    if (p_test != p3) {
+    p = removeProcQ(&qa);
+    if (p != p3) {
         adderrbuf("removeProcQ: failed, wrong priority order for p3   \n");
     }
     freePcb(p1);
@@ -252,7 +243,7 @@ int main(void) {
     if (!emptyChild(procp[2]))
         adderrbuf("emptyChild: unexpected FALSE   \n");
 
-    // make procp[1] through procp[9] children of procp[0] 
+    /* make procp[1] through procp[9] children of procp[0] */
     addokbuf("Inserting...   \n");
     for (i = 1; i < 10; i++) {
         insertChild(procp[0], procp[i]);
@@ -262,7 +253,7 @@ int main(void) {
     if (emptyChild(procp[0]))
         adderrbuf("emptyChild: unexpected TRUE   \n");
 
-    // Check outChild 
+    /* Check outChild */
     q = outChild(procp[1]);
     if (q == NULL || q != procp[1])
         adderrbuf("outChild failed on first child   \n");
@@ -273,7 +264,7 @@ int main(void) {
         adderrbuf("outChild failed on nonexistent child   \n");
     addokbuf("outChild ok   \n");
 
-    // Check removeChild 
+    /* Check removeChild */
     addokbuf("Removing...   \n");
     for (i = 0; i < 7; i++) {
         if ((q = removeChild(procp[0])) == NULL)
@@ -290,19 +281,16 @@ int main(void) {
 
     for (i = 0; i < 10; i++)
         freePcb(procp[i]);
-    */
 
-    /* -----------------------------------------------------------------
-       INIZIO TEST ASL (Active Semaphore List)
-       ----------------------------------------------------------------- */
 
+    /* check ASL */
     initASL();
     addokbuf("Initialized active semaphore list   \n");
 
     /* check removeBlocked and insertBlocked */
     addokbuf("insertBlocked test #1 started  \n");
     for (i = 10; i < MAXPROC; i++) {
-        procp[i] = allocPcb(); // Qui ci serve che initPcbs() sia stato fatto
+        procp[i] = allocPcb();
         if (insertBlocked(&sem[i], procp[i]))
             adderrbuf("insertBlocked(1): unexpected TRUE   \n");
     }

@@ -51,7 +51,7 @@
 #define SEMDEV_PRINT_BASE    24  /* printer: line 6, indici 24-31*/
 #define SEMDEV_TERMTX_BASE   32  /* term TX: line 7, indici 32-39*/
 #define SEMDEV_TERMRX_BASE   40  /* term RX: line 7, indici 40-47*/
-#define SEMDEV_PSEUDOCLK     48  /* pseudo-clock (interval timer)*/
+// #define SEMDEV_PSEUDOCLK     48  /* pseudo-clock (interval timer)*/
 
 /*
  * Interrupt line numbers "logici" (IntLineNo) usati nei calcoli,
@@ -101,9 +101,7 @@
  * per acknowledgare un interrupt pendente (spec sezione 7.1, step 3).
  * NOTA: se ACK non è già definito in uriscv/const.h usare 1.
  */
-#ifndef ACK
 #define ACK 1
-#endif
 
 /* ===========================================================================
  * DICHIARAZIONE DELLA FUNZIONE PUBBLICA

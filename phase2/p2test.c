@@ -15,6 +15,9 @@
  *		Modified by Michael Goldweber on June 19, 2020
  */
 
+// ? teniamo i commenti estesi su ogni file oppure no
+// ? calcoliamo per sicurezza id = getPRID() oppure lasciamo 0 di default nei veri GET_EXCEPTIONSTATE_PTR(0)
+
 #include "../headers/const.h"
 #include "../headers/types.h"
 #include <uriscv/liburiscv.h>
