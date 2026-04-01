@@ -3,5 +3,6 @@
 
 void termprint_direct(char *str);
 void print_hex(unsigned int n);
+void print_dec(int n);
 
 #endif

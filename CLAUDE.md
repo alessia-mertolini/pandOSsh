@@ -90,3 +90,10 @@ pcb_t.p_semAdd   // Non-NULL when blocked on a semaphore
 pcb_t.p_supportStruct // NULL for kernel processes; used in Pass-Up
 pcb_t.p_prio     // 0 = normal, 1 = high priority
 ```
+
+### Debug Files
+the file ```output.md``` contains the most recent output of the latest run that is been printed in the uriscv terminal. This file is updated frequentry.
+the file ```p2testOutput.md``` contans the output that should be displayed in the uriscv terminal after a successful run.
+
+### NOTES
+in the ```exceptions.c``` file in the ```static void waitForClock(state_t *savedState)``` function it has been added a ```for``` loop. This loop is essential if the program is run on Linux, using the Linux Mint disto.

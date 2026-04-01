@@ -68,3 +68,21 @@ void print_hex(unsigned int n) {
     buffer[10] = '\0';
     termprint_direct(buffer);
 }
+
+void print_dec(int n) {
+    char buffer[12]; /* "-2147483648" + '\0' */
+    int i = 11;
+    buffer[i] = '\0';
+    if (n == 0) {
+        buffer[--i] = '0';
+    } else {
+        int neg = (n < 0);
+        unsigned int u = neg ? (unsigned int)(-n) : (unsigned int)n;
+        while (u > 0) {
+            buffer[--i] = '0' + (u % 10);
+            u /= 10;
+        }
+        if (neg) buffer[--i] = '-';
+    }
+    termprint_direct(&buffer[i]);
+}
