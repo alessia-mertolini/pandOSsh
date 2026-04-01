@@ -31,7 +31,7 @@
 /* Calcola l'indirizzo base del device register dato interrupt line e device.
  * Formula dalla spec sezione 7.1:
  *   devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)  */
-#define DEV_REG_ADDR(line, dev) \
+#define DEV_REG_ADDR2(line, dev) \
     (START_DEVREG + ((line) - 3) * 0x80 + (dev) * 0x10)
 
 /* Indirizzo base Interrupting Devices Bit Map (linea = 3..7):
