@@ -302,10 +302,10 @@ static void doIO(state_t *savedState) {
 
 // NSYS6
 static void getCPUTime(state_t *savedState) {
-    cpu_t currentTOD;
-    STCK(currentTOD);
-    cpu_t totalTime = currentProcess->p_time + (currentTOD - start_tod);
-    savedState->reg_a0 = (unsigned int) totalTime;
+    // cpu_t currentTOD;
+    // STCK(currentTOD);
+    // cpu_t totalTime = currentProcess->p_time + (currentTOD - start_tod);
+    savedState->reg_a0 = (unsigned int) currentProcess->p_time;
     LDST(savedState);
     // cpu_t now;
     // STCK(now);
@@ -315,9 +315,9 @@ static void getCPUTime(state_t *savedState) {
 
 // NSYS7
 static void waitForClock(state_t *savedState) {
-    cpu_t now;
-    STCK(now);
-    currentProcess->p_time += (now - start_tod);
+    // cpu_t now;
+    // STCK(now);
+    // currentProcess->p_time += (now - start_tod);
     //for(volatile int i = 0; i < 2; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
     updateCPUTime();
     currentProcess->p_s = *savedState;
