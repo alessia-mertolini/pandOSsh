@@ -41,7 +41,7 @@ void scheduler(void) {
         currentProcess = removeProcQ(&readyQueue);
 
         /* Carica il PLT: allo scadere genera interrupt linea 1 (PLT) */
-        setTIMER(TIMESLICE); // uesto è il time slice specifico e deciso da initial.c
+        setTIMER(TIMESLICE); // questo è il time slice specifico e deciso da initial.c
 
         /* Marca temporale TOD di inizio quanto */
         STCK(start_tod);
