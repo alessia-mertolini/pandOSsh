@@ -3,7 +3,7 @@ project(MultiPandOS LANGUAGES C ASM)
 
 set(XT_PRG_PREFIX riscv64-unknown-elf-)
 set(URISCV_SRC /usr/local/share/uriscv)
-set(URISCV_INC /usr/include)
+set(URISCV_INC /usr/local/include)
 
 set(CMAKE_C_COMPILER ${XT_PRG_PREFIX}gcc)
 set(CMAKE_ASM_COMPILER ${XT_PRG_PREFIX}gcc)
@@ -28,6 +28,7 @@ add_executable(MultiPandOS
     phase2/exceptions.c
     phase2/interrupts.c
     phase2/p2test.c
+    phase2/print.c
     ${URISCV_SRC}/crtso.S ${URISCV_SRC}/liburiscv.S)
 
 add_custom_target(

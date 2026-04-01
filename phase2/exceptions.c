@@ -300,17 +300,14 @@ static void doIO(state_t *savedState) {
     scheduler();
 }
 
-// NSYS6
+// NSYS6 - DA SPECIFICHE
 static void getCPUTime(state_t *savedState) {
-    // cpu_t currentTOD;
-    // STCK(currentTOD);
-    // cpu_t totalTime = currentProcess->p_time + (currentTOD - start_tod);
-    savedState->reg_a0 = (unsigned int) currentProcess->p_time;
+    cpu_t current_time;
+    STCK(current_time);
+    // Tempo passato (p_time) + Tempo del quanto corrente (current_time - start_tod)
+    savedState->reg_a0 = (unsigned int) (currentProcess->p_time + (current_time - start_tod));
+
     LDST(savedState);
-    // cpu_t now;
-    // STCK(now);
-    // savedState->reg_a0 = (unsigned int) currentProcess->p_time; // con le modifiche apportate e lo spostamento di updateCPUTime a questo punto nel registro si trova gia' il valore corretto
-    // LDST(savedState);
 }
 
 // NSYS7
@@ -319,8 +316,8 @@ static void waitForClock(state_t *savedState) {
     // STCK(now);
     // currentProcess->p_time += (now - start_tod);
     //for(volatile int i = 0; i < 2; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
-    updateCPUTime();
     currentProcess->p_s = *savedState;
+    updateCPUTime(); 
 
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX]--; // P su semaforo dello pseudo-clock
     insertBlocked(&deviceSemaphores[PSEUDOCLOCK_SEM_IDX], currentProcess); // blocco sempre -> V ogni 100ms dal nucleo
