@@ -71,7 +71,11 @@ static void handlePLT() {
         return; /* unreachable */
     }
 
-    // updateProcessTime();
+    // cpu_t now;
+    // STCK(now);
+    // currentProcess->p_time += (now - start_tod);
+
+    updateProcessTime();
     currentProcess->p_s = *savedState;
     insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL;

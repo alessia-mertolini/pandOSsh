@@ -36,9 +36,7 @@ void *memcpy(void *dst, const void *src, unsigned int n) {
 
 // Gestore delle eccezioni
 void exceptionHandler(void) {
-    if (currentProcess != NULL) {
-        updateCPUTime(); 
-    }
+
 
     state_t *savedState = GET_EXCEPTION_STATE_PTR(0);
     unsigned int cause = savedState->cause;
@@ -229,7 +227,10 @@ static void passeren(state_t *savedState) {
     (*semAddr)--; // P
 
     if (*semAddr < 0) { // il semaforo era <= 0, facendo una P blocco il processo -> caso bloccante
-        // updateCPUTime();
+        updateCPUTime();
+//         cpu_t now;
+// STCK(now);
+// currentProcess->p_time += (now - start_tod);
         currentProcess->p_s = *savedState;
         insertBlocked(semAddr, currentProcess);
         int *base = &deviceSemaphores[0];
@@ -272,8 +273,12 @@ static void doIO(state_t *savedState) {
     int commandValue = (int) savedState->reg_a2;
     int semIdx = getSemaphoreIndex(commandAddr);
 
+//     cpu_t now;
+// STCK(now);
+// currentProcess->p_time += (now - start_tod);
+
     /* Salviamo stato e tempo del processo corrente */
-    // updateCPUTime();
+    updateCPUTime();
     currentProcess->p_s = *savedState;
 
     /* Blocchiamo il processo sul semaforo del device */
@@ -297,19 +302,24 @@ static void doIO(state_t *savedState) {
 
 // NSYS6
 static void getCPUTime(state_t *savedState) {
-    // cpu_t currentTOD;
-    // STCK(currentTOD);
-    // cpu_t totalTime = currentProcess->p_time + (currentTOD - start_tod);
-    // savedState->reg_a0 = (unsigned int) totalTime;
-    // LDST(savedState);
-    savedState->reg_a0 = (unsigned int) currentProcess->p_time; // con le modifiche apportate e lo spostamento di updateCPUTime a questo punto nel registro si trova gia' il valore corretto
+    cpu_t currentTOD;
+    STCK(currentTOD);
+    cpu_t totalTime = currentProcess->p_time + (currentTOD - start_tod);
+    savedState->reg_a0 = (unsigned int) totalTime;
     LDST(savedState);
+    // cpu_t now;
+    // STCK(now);
+    // savedState->reg_a0 = (unsigned int) currentProcess->p_time; // con le modifiche apportate e lo spostamento di updateCPUTime a questo punto nel registro si trova gia' il valore corretto
+    // LDST(savedState);
 }
 
 // NSYS7
 static void waitForClock(state_t *savedState) {
-    //for(volatile int i = 0; i < 500; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
-    // updateCPUTime();
+    cpu_t now;
+    STCK(now);
+    currentProcess->p_time += (now - start_tod);
+    //for(volatile int i = 0; i < 2; i++); //CICLO BUSYWAIT NECESSARIO PER COMPILAZIONE SU LINUX
+    updateCPUTime();
     currentProcess->p_s = *savedState;
 
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX]--; // P su semaforo dello pseudo-clock
@@ -343,7 +353,10 @@ static void getProcessID(state_t *savedState) {
 
 // NSYS10
 static void yield(state_t *savedState) {
-    // updateCPUTime();
+//     cpu_t now;
+// STCK(now);
+// currentProcess->p_time += (now - start_tod);
+    updateCPUTime();
     currentProcess->p_s = *savedState;
 
     insertProcQ(&readyQueue, currentProcess);
