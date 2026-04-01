@@ -4,7 +4,7 @@
 /* -----------------------------------------------------------------------
  * scheduler.h - PandOSsh Phase 2 - Scheduler
  *
- * Include questo header in:
+ * Questo header viene incluso in:
  *   - scheduler.c  (implementazione)
  *   - initial.c    (chiama scheduler() alla fine del main)
  *   - exceptions.c (chiama scheduler() dopo syscall bloccanti)
@@ -18,7 +18,7 @@
 #include <uriscv/liburiscv.h>
 
 /* -----------------------------------------------------------------------
- * Variabili globali del Nucleus
+ * Variabili globali del kernel
  * Definite in initial.c, usate da tutti i moduli.
  * ----------------------------------------------------------------------- */
 

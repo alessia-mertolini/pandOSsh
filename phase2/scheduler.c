@@ -11,8 +11,8 @@
  *   4. LDST sul processor state del PCB -> il processo riprende.
  *
  * READY QUEUE VUOTA:
- *   processCount == 0              -> HALT  (tutto terminato, ok)
- *   processCount > 0, softBlock > 0 -> WAIT  (attesa interrupt)
+ *   processCount == 0                -> HALT  (tutto terminato, ok)
+ *   processCount > 0, softBlock > 0  -> WAIT  (attesa interrupt)
  *   processCount > 0, softBlock == 0 -> PANIC (deadlock)
  *
  * NOTA su start_tod:
@@ -25,7 +25,7 @@
 
 #include "./headers/scheduler.h"
 
-// Definizione di Start Time Of Dispatch, dichiarata extern in scheduler.h
+// Definizione di start Time Of Dispatch, dichiarata extern in scheduler.h
 cpu_t start_tod;
 
 
@@ -41,7 +41,7 @@ void scheduler(void) {
         currentProcess = removeProcQ(&readyQueue);
 
         /* Carica il PLT: allo scadere genera interrupt linea 1 (PLT) */
-        setTIMER(TIMESLICE); //questo è il time slice specifico e deciso da initial.c
+        setTIMER(TIMESLICE); // uesto è il time slice specifico e deciso da initial.c
 
         /* Marca temporale TOD di inizio quanto */
         STCK(start_tod);
