@@ -1,5 +1,3 @@
-### MultiPandOS - Phase 1
-
 ### To compile the project
 ``` bash
  cmake -B build
@@ -12,6 +10,8 @@
 - Gabriele Preti
 - Mirko Zironi
 
+## MultiPandOS - Phase 1
+
 ### Work Managment
 - Grazia Lisi: pcb.c / 2.1 + 2.3 *
 - Alessia Mertolini: asl.c / 3.1 *
@@ -22,7 +22,7 @@
 
 ---
 
-### MultiPandOS - Phase 2 -> 23/03
+## MultiPandOS - Phase 2
 
 ### Work Managment
 - initial [section 2]
@@ -42,7 +42,7 @@
 
 ---
 
-#### Modifiche al CMakeLists.txt per funzionamento su Arch
+#### Modifiche al CMakeLists.txt per funzionamento su varie Distro
 - rimosso *unknown* da `set(XT_PRG_PREFIX riscv64-elf-)`
 - aggiunto *local* in `set(URISCV_INC /usr/include)`
 

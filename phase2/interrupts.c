@@ -15,15 +15,6 @@ static inline state_t *getSavedExceptionState() {
     return GET_EXCEPTION_STATE_PTR(cpuId);
 }
 
-static void updateProcessTime() {
-    if (currentProcess != NULL) {
-        cpu_t now;
-        STCK(now);
-        currentProcess->p_time += (now - start_tod);
-        start_tod = now;
-    }
-}
-
 // in ogni caso isoliamo il bit i che identifica il device
 static int getDeviceNumber(unsigned int bitmap) {
     if (bitmap & DEV0ON) return 0;
@@ -63,7 +54,7 @@ static pcb_t *verhogenSemDevice(int *sem, unsigned int statusCode) {
 
 static void handlePLT() {
     state_t *savedState = getSavedExceptionState();
-    setTIMER(NEVER);  // ? dobbiamo spegnere l'ACK, l'unico che puo' impostare a TIMESLICE e' lo scheduler
+    setTIMER(NEVER);  // ACK del PLT
 
     if (currentProcess == NULL) {
         /* PLT fired while no process was running (expired during exception handling) */
@@ -71,11 +62,6 @@ static void handlePLT() {
         return; /* unreachable */
     }
 
-    // cpu_t now;
-    // STCK(now);
-    // currentProcess->p_time += (now - start_tod);
-
-    updateProcessTime();
     currentProcess->p_s = *savedState;
     insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL;
@@ -97,7 +83,7 @@ static void handleIntervalTimer() {
     returnToCurrentOrSchedule();
 }
 
-// * gestione tramite intCode anziche' IntLineNo
+/* gestione tramite intCode anziche' IntLineNo - non usando quindi la macro `DEV_REG_ADDR` */
 static void handleDeviceInterrupt(int intCode) {
     // Troviamo la linea di interrupt j (pag. 10 specifiche)
     unsigned int bitmap = *((volatile unsigned int *)CDEV_BITMAP_ADDR(intCode));
@@ -138,7 +124,6 @@ static void handleDeviceInterrupt(int intCode) {
 
     returnToCurrentOrSchedule();
 }
-
 
 void interruptHandler() {
     unsigned int cause = getCAUSE();

@@ -5,7 +5,7 @@
 [!] TERM (0) `p2 is OK`
 [!] TERM (0) `p3 is started`
 [!] TERM (0) `p3 - CLOCKWAIT OK`
-[!] TERM (0) `error: p3 - CPU time incorrectly maintained`
+[!] TERM (0) `p3 - CPU time correctly maintained`
 [!] TERM (0) `hp_p1 starts`
 [!] TERM (0) `hp_p2 starts`
 [!] TERM (0) `first incarnation of p4 starts`
@@ -17,6 +17,7 @@
 [!] TERM (0) `hp_p2 ends`
 [!] TERM (0) `second incarnation of p4 starts`
 [!] TERM (0) `Bus Error (as expected): Access non-existent memory`
+ADDRESS IN KSEG0 - TLBFLOOR 80000000
 [!] TERM (0) `p10 starts`
 [!] TERM (0) `p4 is OK`
 [!] TERM (0) `memory management trap`

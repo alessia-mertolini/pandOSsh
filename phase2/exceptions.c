@@ -50,13 +50,6 @@ void exceptionHandler(void) {
         } else if (excCode >= EXC_TLB_MIN && excCode <= EXC_TLB_MAX) { // l'eccezione e' un page fault
             tlbExceptionHandler();
         }
-            // } else if (excCode == 7 && getBADVADDR() >= 0x80000000U) {
-        //     /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
-        //      * uRISCV genera Store Access Fault (excCode 7) invece di
-        //      * Store Page Fault (excCode 15). Usiamo entry_hi per
-        //      * riconoscere l'indirizzo e deviare al gestore TLB. */
-        //     tlbExceptionHandler();
-        // } 
         else { // Trap per i codici 0-7, 9, 10, 12-23
             programTrapHandler();
         }
@@ -127,12 +120,12 @@ void programTrapHandler(void) {
     unsigned int cause = savedState->cause;
     unsigned int excCode = CAUSE_EXCCODE(cause);
     if (excCode == 7 && getBADVADDR() >= 0x80000000U) {
-            /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
-             * uRISCV genera Store Access Fault (excCode 7) invece di
-             * Store Page Fault (excCode 15). Usiamo entry_hi per
-             * riconoscere l'indirizzo e deviare al gestore TLB. */
-            tlbExceptionHandler();
-        } 
+        /* WORKAROUND URISCV: dopo un TLB-Refill con entry invalida,
+        * uRISCV genera Store Access Fault (excCode 7) invece di
+        * Store Page Fault (excCode 15). Usiamo entry_hi per
+        * riconoscere l'indirizzo e deviare al gestore TLB. */
+        tlbExceptionHandler();
+    } 
     passUpOrDie(GENERALEXCEPT, savedState);
 }
 
@@ -203,8 +196,6 @@ static void terminateProcess(state_t *savedState) {
         
         if (target != NULL){ // ho trovato il pcb con pid = targetPid
             terminateProcessTree(target);
-
-            if (target == currentProcess) currentProcess = NULL; // caso in cui ho terminato il processo in esecuzione
         }
     }
 
@@ -227,11 +218,8 @@ static void passeren(state_t *savedState) {
     (*semAddr)--; // P
 
     if (*semAddr < 0) { // il semaforo era <= 0, facendo una P blocco il processo -> caso bloccante
-        updateCPUTime();
-//         cpu_t now;
-// STCK(now);
-// currentProcess->p_time += (now - start_tod);
         currentProcess->p_s = *savedState;
+        updateCPUTime();
         insertBlocked(semAddr, currentProcess);
         int *base = &deviceSemaphores[0];
         int *end  = &deviceSemaphores[SEMDEVLEN];
@@ -273,13 +261,9 @@ static void doIO(state_t *savedState) {
     int commandValue = (int) savedState->reg_a2;
     int semIdx = getSemaphoreIndex(commandAddr);
 
-//     cpu_t now;
-// STCK(now);
-// currentProcess->p_time += (now - start_tod);
-
     /* Salviamo stato e tempo del processo corrente */
-    updateCPUTime();
     currentProcess->p_s = *savedState;
+    updateCPUTime();
 
     /* Blocchiamo il processo sul semaforo del device */
     deviceSemaphores[semIdx]--;
@@ -350,11 +334,8 @@ static void getProcessID(state_t *savedState) {
 
 // NSYS10
 static void yield(state_t *savedState) {
-//     cpu_t now;
-// STCK(now);
-// currentProcess->p_time += (now - start_tod);
-    updateCPUTime();
     currentProcess->p_s = *savedState;
+    updateCPUTime();
 
     insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL;
@@ -407,7 +388,6 @@ static void updateCPUTime(void) {
     cpu_t now;
     STCK(now);
     currentProcess->p_time += (now - start_tod);
-    start_tod = now;
 }
 
 static int getSemaphoreIndex(int *commandAddr) {
