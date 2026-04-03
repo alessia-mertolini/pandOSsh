@@ -85,12 +85,13 @@
 
 #define MIE_ALL 0xFFFFFFFF
 
+// Machine status
 #define MSTATUS_MPIE_BIT 7
 #define MSTATUS_MIE_BIT 3
 #define MSTATUS_MPRV_BIT 17
-#define MSTATUS_MPP_BIT 11
-#define MSTATUS_MPP_M 0x1800
-#define MSTATUS_MPP_U 0x0000
+#define MSTATUS_MPP_BIT 11 // MPP = Machine Previous 
+#define MSTATUS_MPP_M 0x1800 // Machine mode
+#define MSTATUS_MPP_U 0x0000 // User mode
 #define MSTATUS_MPP_MASK 0x1800
 
 /* Cause register constants */
@@ -240,4 +241,3 @@
 /* Task Priority Register */
 #define TPR 0x10000408 
 #endif
-

@@ -1,4 +1,0 @@
-/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles/MultiPandOS.dir
-/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles/MultiPandOSuRISCV.dir
-/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles/edit_cache.dir
-/home/grazia/Documents/SO/progettoSO/pandOSsh/starterKit/build/CMakeFiles/rebuild_cache.dir

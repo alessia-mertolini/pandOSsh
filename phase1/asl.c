@@ -133,12 +133,24 @@ pcb_t* headBlocked(int* semAdd) {
     struct list_head* iter = NULL;
     list_for_each(iter,&semd_h) {
         semd_t *sem = container_of(iter,semd_t,s_link);
-        if(sem->s_key == semAdd) { 
+        if(sem->s_key == semAdd) {
             if(!list_empty(&sem->s_procq))
                 return container_of(sem->s_procq.next,pcb_t,p_list); // ritorna il puntatore al primo pcb_t
-            else 
+            else
                 return NULL; // se la coda dei processi e' vuota
         }
     }
     return NULL; // se non trova il semaforo ritorna NULL
+}
+
+pcb_t* searchBlockedPcb(int pid) {
+    struct list_head* iter;
+    list_for_each(iter, &semd_h) {
+        semd_t *item = container_of(iter, semd_t, s_link);
+        pcb_t *p;
+        list_for_each_entry(p, &item->s_procq, p_list) {
+            if (p->p_pid == pid) return p;
+        }
+    }
+    return NULL;
 }
