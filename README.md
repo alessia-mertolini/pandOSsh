@@ -4,6 +4,9 @@
  cmake --build build
 ```
 
+**Important:** Controllare che TLB Floor Address sia settato ad un valore diverso da VM OFF;
+nel config_machine.json e' settato a `0x80000000`
+
 ### Authors
 - Grazia Lisi
 - Alessia Mertolini
@@ -26,16 +29,16 @@
 
 ### Work Managment
 - initial.c / [section 2] -> *Alessia*
-- scheduler.c [section 3] *Mirko*
+- scheduler.c [section 3] -> *Mirko*
 - exceptions.c
     - TLB refil events [section 4] -> *Mirko*
-    - exceptions handling [section 5] -> *Grazia*
+    - exceptions handling [section 5] -> *Gabriele*
     - syscall [section 6] -> *Gabriele*, *Alessia*
     - pass up or die [section 8] -> *Mirko*
         - process termination [section 10]
     - accumulated CPU time [section 9] -> *Gabriele*
     - bios data page [section 11] -> *Grazia*
-- interrupts.c [section 7] *Grazia*
+- interrupts.c [section 7] -> *Grazia*
 - debug: *Grazia*, *Alessia*, *Gabriele*, *Mirko*
 
 [section *] := from the given spec file

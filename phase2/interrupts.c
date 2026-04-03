@@ -7,8 +7,7 @@
 
 // Restituisce il puntatore allo stato salvato dell'eccezione corrente
 static inline state_t *getSavedExceptionState() {
-    int cpuId = getPRID();
-    return GET_EXCEPTION_STATE_PTR(cpuId);
+    return GET_EXCEPTION_STATE_PTR(0);
 }
 
 // Restituisce l'indice del primo device attivo nel bitmap (o -1 se nessuno)

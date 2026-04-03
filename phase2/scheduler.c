@@ -38,11 +38,6 @@ void scheduler(void) {
 
     /* ----------------------------------------------------------------
      * CASO 3: processi bloccati su I/O o Pseudo-clock -> Wait State
-     *
-     * Prima di WAIT occorre:
-     *   a) disabilitare il PLT (MIE_MTIE_MASK) per evitare che il primo
-     *      interrupt sia un PLT scaduto mentre non c'è currentProcess
-     *   b) abilitare la gestione globale degli interrupt (MSTATUS_MIE_MASK)
      * ---------------------------------------------------------------- */
     if (softBlockCount > 0) {
         /* Disabilita il PLT: sia resettando il timer sia togliendo il bit in MIE */
