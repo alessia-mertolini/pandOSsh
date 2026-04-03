@@ -2,14 +2,17 @@
 #define SCHEDULER_H
 
 /* -----------------------------------------------------------------------
- * scheduler.h - PandOSsh Phase 2 - Scheduler
- *
- * Questo header viene incluso in:
- *   - scheduler.c  (implementazione)
- *   - initial.c    (chiama scheduler() alla fine del main)
- *   - exceptions.c (chiama scheduler() dopo syscall bloccanti)
- *   - interrupts.c (chiama scheduler() dopo PLT interrupt)
- * ----------------------------------------------------------------------- */
+* READY QUEUE VUOTA:
+*   processCount == 0                -> HALT  (tutto terminato, ok)
+*   processCount > 0, softBlock > 0  -> WAIT  (attesa interrupt)
+*   processCount > 0, softBlock == 0 -> PANIC (deadlock)
+*
+* Questo header viene incluso in:
+*   - scheduler.c  (implementazione)
+*   - initial.c    (chiama scheduler() alla fine del main)
+*   - exceptions.c (chiama scheduler() dopo syscall bloccanti)
+*   - interrupts.c (chiama scheduler() dopo PLT interrupt)
+* ----------------------------------------------------------------------- */
 
 #include "../../headers/const.h"
 #include "./constants.h"
@@ -41,15 +44,12 @@ extern int deviceSemaphores[SEMDEVLEN];
 /* -----------------------------------------------------------------------
  * Timestamp TOD all'inizio del quanto del processo corrente.
  * Settato dallo scheduler ad ogni dispatch.
- * Letto da exceptions.c e interrupts.c per aggiornare p_time:
- *
- *   cpu_t now; STCK(now);
- *   currentProcess->p_time += (now - start_tod);
+ * Letto da exceptions.c e interrupts.c per aggiornare p_time.
  * ----------------------------------------------------------------------- */
 extern cpu_t start_tod;
 
 /* -----------------------------------------------------------------------
- * Prototipi
+ * Prototipo
  * ----------------------------------------------------------------------- */
 
 /* Dispatcher principale. Non ritorna mai. */
