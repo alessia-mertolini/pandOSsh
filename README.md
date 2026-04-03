@@ -25,26 +25,17 @@
 ## MultiPandOS - Phase 2
 
 ### Work Managment
-- initial [section 2]
-- scheduler [section 3] *Mirko*
-    - accumulated CPU time [section 9]
-- exceptions
-    - TLB refil events [section 4] (page faults) **(codice pagina 4 dato)**
-    - exceptions handling [section 5]
-    - syscall [section 6] *Gabriele*
-    - pass up or die [section 8] **(codice pagina 13 dato)**
+- initial.c / [section 2] -> *Alessia*
+- scheduler.c [section 3] *Mirko*
+- exceptions.c
+    - TLB refil events [section 4] -> *Mirko*
+    - exceptions handling [section 5] -> *Grazia*
+    - syscall [section 6] -> *Gabriele*, *Alessia*
+    - pass up or die [section 8] -> *Mirko*
         - process termination [section 10]
-    - bios data page [section 11]
-- interrupts [section 7] *Grazia*
-- device registers [section 12] *Alessia* + alcune syscall
+    - accumulated CPU time [section 9] -> *Gabriele*
+    - bios data page [section 11] -> *Grazia*
+- interrupts.c [section 7] *Grazia*
+- debug: *Grazia*, *Alessia*, *Gabriele*, *Mirko*
 
-(*) := from the given spec file
-
----
-
-#### Modifiche al CMakeLists.txt per funzionamento su varie Distro
-- rimosso *unknown* da `set(XT_PRG_PREFIX riscv64-elf-)`
-- aggiunto *local* in `set(URISCV_INC /usr/include)`
-
-#### Compilazione per Arch speciale
-`gcc -I/usr/local/include main.c -o main`
+[section *] := from the given spec file
