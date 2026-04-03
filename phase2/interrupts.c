@@ -1,21 +1,17 @@
 /*
- * interrupts.c
+ * interrupts.c - Phase 2: Nucleus Interrupt Handlers
  *
- * NOTA: tutte le chiamate a termprint_direct/print_hex sono state rimosse
- * da questo file perché usano lo stesso registro TX del terminale 0.
- * Qualsiasi scrittura sul terminale mentre un interrupt del terminale è
- * pendente in MIP causa un ACK implicito, svuotando il bit nel CDEV bitmap
- * prima che handleDeviceInterrupt lo possa leggere.
  */
 
 #include "./headers/interrupts.h"
 
+// Restituisce il puntatore allo stato salvato dell'eccezione corrente
 static inline state_t *getSavedExceptionState() {
     int cpuId = getPRID();
     return GET_EXCEPTION_STATE_PTR(cpuId);
 }
 
-// in ogni caso isoliamo il bit i che identifica il device
+// Restituisce l'indice del primo device attivo nel bitmap (o -1 se nessuno)
 static int getDeviceNumber(unsigned int bitmap) {
     if (bitmap & DEV0ON) return 0;
     if (bitmap & DEV1ON) return 1;
@@ -28,6 +24,11 @@ static int getDeviceNumber(unsigned int bitmap) {
     return -1;
 }
 
+/*
+ * Dopo aver gestito un interrupt, decide come proseguire:
+ * - Se esiste un processo corrente, ripristina il suo stato (LDST) e lo riprende.
+ * - Altrimenti invoca lo scheduler per selezionare il prossimo processo.
+ */
 static void returnToCurrentOrSchedule() {
     if (currentProcess != NULL) { // ritorno allo stato salvato
         LDST(getSavedExceptionState());
@@ -36,14 +37,14 @@ static void returnToCurrentOrSchedule() {
     }
 }
 
-// diversa dalla syscall perche' non scrivo nel registro a1 di invocazione dell'eccezione
+// Versione della V (verhogen) dedicata ai device, che aggiorna il registro a0 del processo sbloccato con lo status code del device
 static pcb_t *verhogenSemDevice(int *sem, unsigned int statusCode) {
     pcb_t *unblocked = NULL;
-    (*sem)++;
+    (*sem)++;       // incremento del semaforo (V)
     if (*sem <= 0) {
-        unblocked = removeBlocked(sem);
+        unblocked = removeBlocked(sem);             //se ci sono processi bloccati su di esso ne risveglia uno inserendolo nella readyQueue
         if (unblocked != NULL) {
-            unblocked->p_s.reg_a0 = statusCode;
+            unblocked->p_s.reg_a0 = statusCode;     // comunica l'esito al processo sbloccato tramite a0
             unblocked->p_semAdd = NULL;
             insertProcQ(&readyQueue, unblocked);
             softBlockCount--;
@@ -52,72 +53,80 @@ static pcb_t *verhogenSemDevice(int *sem, unsigned int statusCode) {
     return unblocked;
 }
 
+// Gestore del PLT (Processor Local Timer)
 static void handlePLT() {
     state_t *savedState = getSavedExceptionState();
-    setTIMER(NEVER);  // ACK del PLT
+    setTIMER(NEVER);  // disarma il PLT: ACK dell'interrupt
 
+    // Se non c'e' processo corrente, non c'e' bisogno di salvare il contesto: basta chiamare lo scheduler
     if (currentProcess == NULL) {
-        /* PLT fired while no process was running (expired during exception handling) */
         scheduler();
-        return; /* unreachable */
+        return;
     }
 
+    // Salva il contesto e rimette il processo in coda pronti
     currentProcess->p_s = *savedState;
     insertProcQ(&readyQueue, currentProcess);
     currentProcess = NULL;
     scheduler();
 }
 
+// Gestore dell'Interval Timer (pseudoclock)
 static void handleIntervalTimer() {
-    LDIT(PSECOND); // ACK dell'interrupt
+    LDIT(PSECOND); // ricarica e ACK dell'Interval Timer
 
-    // Sblocca TUTTI i processi in attesa, poi forza il semaforo a 0
+    // Sblocca tutti i processi in attesa del tick dello pseudoclock
     while (deviceSemaphores[PSEUDOCLOCK_SEM_IDX] < 0) {
         pcb_t *unblocked = verhogenSemDevice(&deviceSemaphores[PSEUDOCLOCK_SEM_IDX], 0);
         if (unblocked == NULL) break;
     }
     
-    // Forza il semaforo a 0: non deve accumularsi tra un tick e l'altro
+    // Azzera il semaforo: i tick non si accumulano tra un periodo e l'altro
     deviceSemaphores[PSEUDOCLOCK_SEM_IDX] = 0;
 
     returnToCurrentOrSchedule();
 }
 
-/* gestione tramite intCode anziche' IntLineNo - non usando quindi la macro `DEV_REG_ADDR` */
+// Gestore generico degli interrupt dei device (linee 3–7: disk, flash, ethernet, printer, terminal)
 static void handleDeviceInterrupt(int intCode) {
-    // Troviamo la linea di interrupt j (pag. 10 specifiche)
+    // Legge il bitmap dei device attivi sulla linea intCode
     unsigned int bitmap = *((volatile unsigned int *)CDEV_BITMAP_ADDR(intCode));
 
-    /* Calcolo del devNo */
+    // Determina quale device ha generato l'interrupt
     int devNo = getDeviceNumber(bitmap);
     if (devNo < 0) {
         returnToCurrentOrSchedule();
         return;
     }
 
-    /* Calcolo dell'indirizzo del device register */
+    // Calcolo dell'indirizzo base del device register
     memaddr devRegAddr = DEV_REG_ADDR(intCode, devNo);
 
     if (intCode == IL_TERMINAL) {
+        // Puntatori ai registri del terminale (TX e RX separati)
         volatile unsigned int *transmStatus  = (unsigned int *)(devRegAddr + 0x8);
         volatile unsigned int *transmCommand = (unsigned int *)(devRegAddr + 0xC);
         volatile unsigned int *recvStatus    = (unsigned int *)(devRegAddr + 0x0);
         volatile unsigned int *recvCommand   = (unsigned int *)(devRegAddr + 0x4);
 
-        if ((*transmStatus & 0xFF) == OKCHARTRANS) { // caso di trasmissione del carattere
-            unsigned int statusCode = *transmStatus; // salvataggio stato
-            *transmCommand = ACK; // ACK
-            verhogenSemDevice(&deviceSemaphores[SEMDEV_TERMTX_BASE + devNo], statusCode); // V
-        } else if ((*recvStatus & 0xFF) == CHARRECV) { // caso di ricezione del carattere
+        if ((*transmStatus & 0xFF) == OKCHARTRANS) {
+            // Il trasmettitore ha completato l'invio di un carattere
+            unsigned int statusCode = *transmStatus;
+            *transmCommand = ACK;       // notifica al device che l'interrupt è stato gestito
+            verhogenSemDevice(&deviceSemaphores[SEMDEV_TERMTX_BASE + devNo], statusCode);
+        } else if ((*recvStatus & 0xFF) == CHARRECV) {
+            // Il ricevitore ha ricevuto un carattere
             unsigned int statusCode = *recvStatus;
             *recvCommand = ACK;
             verhogenSemDevice(&deviceSemaphores[SEMDEV_TERMRX_BASE + devNo], statusCode);
         }
     } else {
+        // Device generico (disk, flash, ethernet, printer)
         volatile unsigned int *devStatus  = (unsigned int *)(devRegAddr + 0x0);
         volatile unsigned int *devCommand = (unsigned int *)(devRegAddr + 0x4);
         unsigned int statusCode = *devStatus;
         *devCommand = ACK;
+        // Calcola l'indice del semaforo: ogni linea ha DEVPERINT device
         int semIdx = (intCode - IL_DISK) * DEVPERINT + devNo;
         verhogenSemDevice(&deviceSemaphores[semIdx], statusCode);
     }
@@ -125,16 +134,17 @@ static void handleDeviceInterrupt(int intCode) {
     returnToCurrentOrSchedule();
 }
 
+// Entry point principale del gestore degli interrupt
 void interruptHandler() {
     unsigned int cause = getCAUSE();
-    unsigned int intCode = cause & 0x7FFFFFFF;
+    unsigned int intCode = cause & 0x7FFFFFFF;  // isola i bit della causa
 
     // catena di if consente la gestione in ordine decrescente di priorita' (priorita' piu' alta corrisponde a linea piu' bassa)
-    if (intCode == IL_CPUTIMER) { // linea 1: PLT
+    if (intCode == IL_CPUTIMER) { // linea 1: PLT (timer locale della CPU)
         handlePLT();
-    } else if (intCode == IL_TIMER) { // linea 2: interval timer
+    } else if (intCode == IL_TIMER) { // linea 2: Interval Timer (pseudoclock di sistema)
         handleIntervalTimer();
-    } else if (intCode == IL_TERMINAL) { // linee 3-7: devices
+    } else if (intCode == IL_TERMINAL) { // linee 3-7: Device I/O
         handleDeviceInterrupt(IL_TERMINAL);
     } else if (intCode == IL_PRINTER) {
         handleDeviceInterrupt(IL_PRINTER);
