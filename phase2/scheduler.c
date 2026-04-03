@@ -1,28 +1,3 @@
-/* -----------------------------------------------------------------------
- * scheduler.c - PandOSsh Phase 2 - Scheduler
- *
- * Implementazione di un preemptive round-robin scheduler con time slice di 5ms
- * tramite Processor Local Timer (PLT).
- *
- * ALGORITMO DI DISPATCH:
- *   1. Prende il PCB in testa alla readyQueue (priorità massima).
- *   2. Carica il PLT con TIMESLICE (5ms).
- *   3. Salva il TOD corrente in start_tod (contabilità CPU).
- *   4. LDST sul processor state del PCB -> il processo riprende.
- *
- * READY QUEUE VUOTA:
- *   processCount == 0                -> HALT  (tutto terminato, ok)
- *   processCount > 0, softBlock > 0  -> WAIT  (attesa interrupt)
- *   processCount > 0, softBlock == 0 -> PANIC (deadlock)
- *
- * NOTA su start_tod:
- *   Prima di bloccare o terminare currentProcess, exceptions.c e
- *   interrupts.c devono aggiornare p_time così:
- *
- *     cpu_t now; STCK(now);
- *     currentProcess->p_time += (now - start_tod);
- * ----------------------------------------------------------------------- */
-
 #include "./headers/scheduler.h"
 
 // Definizione di start Time Of Dispatch, dichiarata extern in scheduler.h
