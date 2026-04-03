@@ -4,7 +4,6 @@ build/
 *.swp
 *.txt
 *.pdf
-*.json
 *.uriscv
 .vscode/
 .claude/
