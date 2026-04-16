@@ -86,7 +86,7 @@ int main(void) {
     }
 
     //Carica l'Interval Timer con 100ms (Pseudo-clock tick)/
-    LDIT(PSECOND); //qui viene settato il time slice che poi viene usato in tutto il SO
+    LDIT(PSECOND * *((unsigned int *) TIMESCALEADDR)); //qui viene settato il time slice che poi viene usato in tutto il SO
 
     //Istanzia il primo processo e lo inserisce nella Ready Queue/
     pcb_t *firstProcess = allocPcb();
