@@ -66,4 +66,6 @@ void programTrapHandler(void);
  * Esegue Pass Up or Die con indice PGFAULTEXCEPT*/
 void tlbExceptionHandler(void);
 
+void uTLB_RefillHandler(void);
+
 #endif /* EXCEPTIONS_H_INCLUDED */
