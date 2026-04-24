@@ -426,6 +426,9 @@ static int getSemaphoreIndex(int *commandAddr) {
 void uTLB_RefillHandler() { // -> cache miss
     state_t *savedState = (state_t *) BIOSDATAPAGE;
     unsigned int faultEntryHi = savedState->entry_hi;
+
+    // con la maschera isoliamo il numero della pagina (prime 5 posizioni esadecimali)
+    // per ottenere il corretto vpn shiftiamo poi a dx di 12 bit (ovvero 3 posizioni esadecimali)
     unsigned int vpn = (faultEntryHi & VPN_MASK) >> VPNSHIFT; // top 20 bit = numero di pagina
 
     if (currentProcess == NULL || currentProcess->p_supportStruct == NULL) {
