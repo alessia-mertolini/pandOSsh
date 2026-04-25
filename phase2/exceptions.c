@@ -450,11 +450,11 @@ void uTLB_RefillHandler() { // -> cache miss
         PANIC(); 
     }
     
-    pteEntry_t targetPageTable = currentProcess->p_supportStruct->sup_privatePgTbl[p];
+    pteEntry_t *pageTable = &(currentProcess->p_supportStruct->sup_privatePgTbl[p]);
 
     // 3. Write this Page Table entry into the TLB
-    setENTRYHI(targetPageTable.pte_entryHI);
-    setENTRYLO(targetPageTable.pte_entryLO);
+    setENTRYHI(pageTable->pte_entryHI);
+    setENTRYLO(pageTable->pte_entryLO);
     TLBWR(); // scrive in uno slot random del TLB
     // 4. Return control to the Current Process
     LDST((state_t*) BIOSDATAPAGE);
