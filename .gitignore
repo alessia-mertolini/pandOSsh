@@ -11,3 +11,4 @@ build/
 headers/listx.h
 klog.c
 CMakeLists.txt
+.DS_Store

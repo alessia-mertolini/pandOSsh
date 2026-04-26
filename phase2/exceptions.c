@@ -329,10 +329,25 @@ static void yield(state_t *savedState) {
     currentProcess->p_s = *savedState;
     updateCPUTime();
 
-    insertProcQ(&readyQueue, currentProcess);
-    currentProcess = NULL;
-
-    scheduler();
+    if (!emptyProcQ(&readyQueue)) {
+        // Estraiamo il processo attualmente con priorita' massima
+        pcb_t *nextToRun = removeProcQ(&readyQueue);
+        
+        // Ora inseriamo il processo corrente, dopo aver estratto quello in testa per essere sicuri di 
+        // non estrarlo anche se ha la priorita' massima
+        insertProcQ(&readyQueue, currentProcess);
+        
+        // Settiamo il processo corrente a quello precedentemente estratto
+        currentProcess = nextToRun;
+        setTIMER(TIMESLICE * *((unsigned int *)TIMESCALEADDR));
+        STCK(start_tod);
+        LDST(&(currentProcess->p_s));
+    } else {
+        // Se la coda è vuota, il processo è l'unico vivo nel sistema
+        insertProcQ(&readyQueue, currentProcess);
+        currentProcess = NULL;
+        scheduler();
+    }
 }
 
 static void passUpOrDie(int exceptionType, state_t *savedState) {
@@ -340,7 +355,7 @@ static void passUpOrDie(int exceptionType, state_t *savedState) {
         terminateProcessTree(currentProcess);
         currentProcess = NULL;
         scheduler();
-    } else { //caso 2 - support struct valida ed utilizzabile
+    } else { // caso 2 - support struct valida ed utilizzabile
         currentProcess->p_supportStruct->sup_exceptState[exceptionType] = *savedState;
         context_t *ctx = &currentProcess->p_supportStruct->sup_exceptContext[exceptionType];
         LDCXT(ctx->stackPtr, ctx->status, ctx->pc);

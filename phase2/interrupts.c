@@ -4,6 +4,7 @@
  */
 
 #include "./headers/interrupts.h"
+#include "headers/exceptions.h"
 
 // Restituisce il puntatore allo stato salvato dell'eccezione corrente
 static inline state_t *getSavedExceptionState() {
@@ -62,6 +63,10 @@ static void handlePLT() {
         scheduler();
         return;
     }
+
+    cpu_t now;
+    STCK(now);
+    currentProcess->p_time += (now - start_tod);
 
     // Salva il contesto e rimette il processo in coda pronti
     currentProcess->p_s = *savedState;
