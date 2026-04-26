@@ -3,7 +3,7 @@ project(MultiPandOS LANGUAGES C ASM)
 
 set(XT_PRG_PREFIX riscv64-unknown-elf-)
 set(URISCV_SRC /usr/local/share/uriscv)
-set(URISCV_INC /usr/local/include)
+set(URISCV_INC /usr/include)
 
 set(CMAKE_C_COMPILER ${XT_PRG_PREFIX}gcc)
 set(CMAKE_ASM_COMPILER ${XT_PRG_PREFIX}gcc)
@@ -13,10 +13,12 @@ add_link_options(-nostdlib -T ${URISCV_SRC}/uriscvcore.ldscript -march=rv32imfd)
 add_compile_options(-ffreestanding -static -nostartfiles -nostdlib -I${URISCV_INC} -ggdb -Wall -O0 -std=gnu99 -march=rv32imafd -mabi=ilp32d)
 
 # Rende visibili tutti gli header con semplici #include "nomefile.h"
+# !! CONTROLLARE PER GLI HEADERS DEI TEST !!
 include_directories(
     ${CMAKE_SOURCE_DIR}/headers
     ${CMAKE_SOURCE_DIR}/phase1/headers
     ${CMAKE_SOURCE_DIR}/phase2/headers
+    ${CMAKE_SOURCE_DIR}/phase3/headers
 )
 
 add_executable(MultiPandOS
@@ -28,6 +30,9 @@ add_executable(MultiPandOS
     phase2/exceptions.c
     phase2/interrupts.c
     phase2/p2test.c
+    phase3/initProc.c
+    phase3/sysSupport.c
+    phase3/vmSupport.c
     ${URISCV_SRC}/crtso.S ${URISCV_SRC}/liburiscv.S)
 
 add_custom_target(
