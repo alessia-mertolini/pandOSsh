@@ -45,7 +45,7 @@ nel config_machine.json e' settato a `0x80000000`
 
 ---
 
-## MultiPandOS - Phase 2
+## MultiPandOS - Phase 3
 
 ### Work Managment
 - ARCHITETTO DELLA MEMORIA VIRTUALE -> Gestione della virtual memory -> vmSupport.c -> *Gabriele*
