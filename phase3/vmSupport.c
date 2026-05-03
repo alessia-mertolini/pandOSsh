@@ -34,6 +34,7 @@ void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
     pageTable->pte_entryLO = physicalAddr | bitFlags;
     TLBCLR(); //ancora versione debug, poi qui deve venire inserita la versione potente
+    exitAtomicSession();
 }
 
 //algoritmo Round Robin per la sostituzione delle pagine
