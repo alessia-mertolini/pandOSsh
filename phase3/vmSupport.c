@@ -1,4 +1,5 @@
 #include "./headers/vmSupport.h"
+#include "./headers/sysSupport.h"
 #include <uriscv/liburiscv.h>
 #include "exceptions.h"
 
@@ -11,12 +12,19 @@ static swap_t swapPoolTable[POOLSIZE];
 static int swapPoolSemaphore;
 //frame corrente della page table da sostituire
 static int currentFrame = 0;
+//Array dei semafori dei device - 8 flash device
+int flashSem[DEVPERINT];
 
 void enterAtomicSession() {
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
 }
 void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
+}
+
+//Restituisce l'indirizzo fisico di un frame della Swap Pool
+static memaddr frameAddressFunction(int frameIdx) {
+    return (memaddr)(SWAP_POOL_START_ADDR + frameIdx * PAGESIZE);
 }
 
 void initSwapStructures() {
@@ -72,12 +80,32 @@ void pageReplacementAlgorithm(int *i) {
     *i = currentFrame;
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
-//vpn = p e frameNumber = i
-int writeToFlash(int asid, unsigned int vpn, int frameNumber) {
-    return 0;
-}
-int readToFlash(int asid, unsigned int vpn, int frameNumber) {
-    return 0;
+//vpn = p = page number e frameNumber = i
+int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
+    memaddr frameAddress = frameAddressFunction(frameNumber);
+    //Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
+    int devNo = asid - 1;
+    //Indirizzo base del device register del flash
+    dtpreg_t *devReg = (dtpreg_t *)DEV_REG_ADDR(IL_FLASH, devNo);
+
+    //Acquisisce il semaforo di mutua esclusione sul device
+    SYSCALL(PASSEREN, (int)&flashSem[devNo], 0, 0);
+    //Passo 1: scrive DATA0 con l'indirizzo fisico del frame
+    devReg->data0 = frameAddress;
+
+    //Passo 2: avvia l'operazione tramite NSYS5 (DoIO)
+    //Il campo COMMAND contiene: blocco (byte alti) | comando (byte basso)
+    unsigned int cmd = (vpn << 8) | command;
+    unsigned int status = SYSCALL(DOIO, (int)&devReg->command, cmd, 0);
+
+    //Rilascia il semaforo del device
+    SYSCALL(VERHOGEN, (int)&flashSem[devNo], 0, 0);
+
+    if((status & 0xFF) == 1) {
+        return OK; //operazione effettuata con successo
+    } else {
+        return -1;
+    }
 }
 
 //sezione 4.2 delle specifiche
@@ -102,7 +130,8 @@ void pager() {
         pageReplacementAlgorithm(&i);
 
         //punto sette - determiniamo se il frame i-esimo è occupato
-        if(swapPoolTable[i].sw_asid != -1) { //abbiamo definito con il valore di "-1" un frame vuoto
+        if(swapPoolTable[i].sw_asid != -1) {
+            //abbiamo definito con il valore di "-1" un frame vuoto
             //dunque qui il frame "i-esimo" è attualmente occupato
             int oldProcAsid = swapPoolTable[i].sw_asid;
             int oldProcVpn = swapPoolTable[i].sw_pageNo; //la pagina che verrà sostituita da "p"
@@ -118,57 +147,62 @@ void pager() {
             exitAtomicSession();
 
             //8c)
-            int writeStatus = writeToFlash(oldProcAsid, oldProcVpn, i);
-            if (writeStatus != 0) {
-                programTrapHandler();
+
+            //int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command);
+
+            int writeStatus = readOrWriteToFlash(oldProcAsid, oldProcVpn, i, FLASHWRITE);
+            //int writeStatus = writeToFlash(oldProcAsid, oldProcVpn, i);
+            if (writeStatus != OK) {
+                programTrapSupportHandler();
                 return;
             }
-            //9
-            int readStatus = readToFlash(support->sup_asid, p, i);
-            if (readStatus != 0) {
-                programTrapHandler();
-                return;
-            }
-
-            //10
-            swapPoolTable[i].sw_asid = support -> sup_asid;
-            swapPoolTable[i].sw_pageNo = p; //memorizzazione del vpn
-            //salvataggio di un puntatore diretto alla specifica Page Table Entry di quella pagina "p"
-            //all'interno della pageTable del processo corrente
-            swapPoolTable[i].sw_pte = &(support -> sup_privatePgTbl[p]);
-
-            //11 + 12
-            unsigned int physicalAddr = (SWAP_POOL_START_ADDR + (i * PAGESIZE));
-            updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
-
-            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
-            LDST(exceptionState);
         }
+
+        //9
+        int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
+        if (readStatus != OK) {
+            programTrapSupportHandler();
+            return;
+        }
+
+        //10
+        swapPoolTable[i].sw_asid = support -> sup_asid;
+        swapPoolTable[i].sw_pageNo = p; //memorizzazione del vpn
+        //salvataggio di un puntatore diretto alla specifica Page Table Entry di quella pagina "p"
+        //all'interno della pageTable del processo corrente
+        swapPoolTable[i].sw_pte = &(support -> sup_privatePgTbl[p]);
+
+        //11 + 12
+        unsigned int physicalAddr = (SWAP_POOL_START_ADDR + (i * PAGESIZE));
+        updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
+
+        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
+        LDST(exceptionState);
     }
     else {
-        programTrapHandler();
+        programTrapSupportHandler();
         return;
     }
 }
 
 //TODO assegnare ASID values
 void initPageTable(support_t *s) {
-  for(int i = 0; i < USERPGTBLSIZE; i++) {
-    volatile unsigned int vpn;
+    for(int i = 0; i < USERPGTBLSIZE; i++) {
+        volatile unsigned int vpn;
 
 
-    if(i == USERPGTBLSIZE - 1) { // per l'ultima pagina vi e' invece un registro preposto
-      vpn = STACK_PAGE_VPN;
-    } else { // per le prime 31 pagine e un semplice contatore da 1 a 31
-      vpn = KUSEG_VPN + i;
+        if(i == USERPGTBLSIZE - 1) { // per l'ultima pagina vi e' invece un registro preposto
+          vpn = STACK_PAGE_VPN;
+        } else { // per le prime 31 pagine e un semplice contatore da 1 a 31
+          vpn = KUSEG_VPN + i;
+        }
+
+        // ogni entryHI e' composta dai primi 20 bit per il numero vpn, che quindi shiftiamo a sx
+        // e dagli ultimi 3 per l'ASID, che quindi sommiamo per avere in fondo a destra come
+        // indirizzo del registro puntato dalla pageTable
+        s->sup_privatePgTbl[i].pte_entryHI = (vpn << VPNSHIFT) | (s->sup_asid << ASIDSHIFT);
+
+        // attiviamo solo D e G
+        s->sup_privatePgTbl[i].pte_entryLO = DIRTYON;
     }
-
-    // ogni entryHI e' composta dai primi 20 bit per il numero vpn, che quindi shiftiamo a sx
-    // e dagli ultimi 3 per l'ASID, che quindi sommiamo per avere in fondo a destra come
-    // indirizzo del registro puntato dalla pageTable
-    s->sup_privatePgTbl[i].pte_entryHI = (vpn << VPNSHIFT) | (s->sup_asid << ASIDSHIFT);
-
-    // attiviamo solo D e G
-    s->sup_privatePgTbl[i].pte_entryLO = DIRTYON | GLOBALON;
-  }
 }

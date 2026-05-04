@@ -24,6 +24,9 @@ void initPageTable(support_t *s);
 */
 void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags);
 
+//Restituisce l'indirizzo fisico di un frame della Swap Pool
+static memaddr frameAddressFunction(int frameIdx);
+
 //Funzione di inizializzazione delle strutture dati necessarie alla swap pool
 //'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'
 //inizializzazione dei campi della struct 'swap_t' utilizzata da 'swapPoolTable'
@@ -59,6 +62,8 @@ int writeToFlash(int asid, unsigned int vpn, int frameNumber);
  * @return: restituisce 0 in caso di successo, 1 altrimenti
  */
 int readToFlash(int asid, unsigned int vpn, int frameNumber);
+
+int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command);
 
 /**
  * Gestisce le eccezioni di tipo Page Fault (TLB-Invalid Load/Store),
