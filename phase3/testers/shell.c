@@ -12,6 +12,7 @@
 #include <uriscv/liburiscv.h>
 #include "h/tconst.h"
 #include "h/print.h"
+#include <uriscv/const.h>
 
 /* --------------------------------------------------------------------------
  * Mappa statica: nome programma -> ASID
@@ -21,8 +22,6 @@
  * ASID 1..8 sono validi; 0 è riservato al kernel.
  * -------------------------------------------------------------------------- */
 #define MAX_PROGS 7
-#define TRUE 1
-#define FALSE 0
 
 typedef struct {
     char *name;
