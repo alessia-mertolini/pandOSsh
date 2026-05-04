@@ -6,7 +6,7 @@
  *   - Program Trap handler (Sezione 8)  -> vmSupport.c
  *   - Pager / swap pool                 -> vmSupport.c
  *   - TLB-Refill handler                -> exceptions.c
- *   - spawnUProc / initProc             -> initProc.c
+ *   - launchUProc / initProc             -> initProc.c
  */
 
 #include "./headers/sysSupport.h"
@@ -21,7 +21,7 @@
 /* initProc.c */
 extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shell alla fine */
 extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
-extern void spawnUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
+extern void launchUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
 
 //Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
 static int isShellProcess(support_t *sup) {
@@ -264,7 +264,7 @@ static void sys5ReadTerminal(support_t *sup) {
  * Solo la shell può chiamare SYS6; altrimenti si tratta come Program Trap.
  *
  * Flusso:
- *   1. spawnUProc(asid): crea il processo tramite NSYS1 (in initProc.c).
+ *   1. launchUProc(asid): crea il processo tramite NSYS1 (in initProc.c).
  *   2. P(shellSemaphore): blocca la shell.
  *   3. Il figlio al termine chiama SYS2 -> V(shellSemaphore): risveglia la shell.
  *   4. Ritorna con a0 = 0, PC += 4.
@@ -280,7 +280,7 @@ static void sys6Execute(support_t *sup) {
     }
 
     /* Crea e lancia l'U-proc (initProc.c). */
-    spawnUProc(asid);
+    launchUProc(asid);
 
     /* Blocca la shell fino alla terminazione del figlio. */
     SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);

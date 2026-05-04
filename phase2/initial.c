@@ -63,7 +63,6 @@ int main(void) {
     passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
 
     // Gestore degli eventi TLB da exceptions.c
-    extern void uTLB_RefillHandler(void);
     passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
     passupvector->tlb_refill_stackPtr = KERNELSTACK;
 

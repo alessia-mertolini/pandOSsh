@@ -27,8 +27,8 @@ support_t supportStructPool[UPROCMAX];
 /* -----------------------------------------------------------------------
  * Prototipi locali
  * ----------------------------------------------------------------------- */
-static void     initSupportStruct(int asid);
-static void     launchUproc(int asid);
+static void initSupportStruct(int asid);
+void launchUProc(int asid);
 static support_t *allocSupportStruct(int asid);
 
 void test() {
@@ -47,7 +47,7 @@ void test() {
     shellSemaphore = 0;
 
      /* ── 4. Lancia la shell (ASID 1 per convenzione) ────────────────────── */
-    launchUproc(1 /* SHELL_ASID */);
+    launchUProc(1 /* SHELL_ASID */);
 
     SYSCALL(PASSEREN, (int)&masterSemaphore,0,0);
 
@@ -56,9 +56,9 @@ void test() {
 
 
 /* -----------------------------------------------------------------------
- * launchUproc() - Crea e dispatcha un U-proc tramite NSYS1 (CREATEPROCESS)
+ * launchUProc() - Crea e dispatcha un U-proc tramite NSYS1 (CREATEPROCESS)
  * ----------------------------------------------------------------------- */
-static void launchUproc(int asid) {
+void launchUProc(int asid) {
     state_t     uprocState;
     support_t  *sup = allocSupportStruct(asid);
 
