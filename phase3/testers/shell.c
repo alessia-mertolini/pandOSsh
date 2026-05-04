@@ -66,48 +66,48 @@ int main() {
 
     print(WRITETERMINAL, "PandOSsh shell ready. Type a program name or 'exit'.\n");
 
-    // while (1) {
-    //     /* Prompt */
-    //     print(WRITETERMINAL, "> ");
+    while (1) {
+        /* Prompt */
+        print(WRITETERMINAL, "> ");
 
-    //     /* SYS5: ReadTerminal - legge una riga da tastiera */
-    //     nread = SYSCALL(READTERMINAL, (int)input_buf, 0, 0);
+        /* SYS5: ReadTerminal - legge una riga da tastiera */
+        nread = SYSCALL(READTERMINAL, (int)input_buf, 0, 0);
 
-    //     if (nread < 0) {
-    //         /* Errore di lettura: termina */
-    //         print(WRITETERMINAL, "ERROR: ReadTerminal failed\n");
-    //         SYSCALL(TERMINATE, 0, 0, 0);
-    //     }
+        if (nread < 0) {
+            /* Errore di lettura: termina */
+            print(WRITETERMINAL, "ERROR: ReadTerminal failed\n");
+            SYSCALL(TERMINATE, 0, 0, 0);
+        }
 
-    //     /* Rimuove il '\n' finale inserito dal terminale */
-    //     rm_newline(input_buf);
+        /* Rimuove il '\n' finale inserito dal terminale */
+        rm_newline(input_buf);
 
-    //     /* Comando "exit": termina la shell */
-    //     if (str_cmp(input_buf, "exit")) {
-    //         print(WRITETERMINAL, "Shell exiting.\n");
-    //         SYSCALL(TERMINATE, 0, 0, 0);
-    //         /* non ritorna mai */
-    //     }
+        /* Comando "exit": termina la shell */
+        if (str_cmp(input_buf, "exit")) {
+            print(WRITETERMINAL, "Shell exiting.\n");
+            SYSCALL(TERMINATE, 0, 0, 0);
+            /* non ritorna mai */
+        }
 
-    //     /* Ricerca nella mappa statica */
-    //     found = 0;
-    //     for (i = 0; i < MAX_PROGS; i++) {
-    //         if (str_cmp(input_buf, tests[i].name)) {
-    //             found = 1;
+        /* Ricerca nella mappa statica */
+        found = 0;
+        for (i = 0; i < MAX_PROGS; i++) {
+            if (str_cmp(input_buf, tests[i].name)) {
+                found = 1;
 
-    //             /* SYS6: Execute - crea il processo figlio e attende */
-    //             SYSCALL(EXECUTE, tests[i].asid, 0, 0);
+                /* SYS6: Execute - crea il processo figlio e attende */
+                SYSCALL(EXECUTE, tests[i].asid, 0, 0);
 
-    //             /* Siamo tornati: il figlio è terminato */
-    //             print(WRITETERMINAL, "Program terminated.\n");
-    //             break;
-    //         }
-    //     }
+                /* Siamo tornati: il figlio è terminato */
+                print(WRITETERMINAL, "Program terminated.\n");
+                break;
+            }
+        }
 
-    //     if (!found) {
-    //         print(WRITETERMINAL, "Command not found: ");
-    //         print(WRITETERMINAL, input_buf);
-    //         print(WRITETERMINAL, "\n");
-    //     }
-    // }
+        if (!found) {
+            print(WRITETERMINAL, "Command not found: ");
+            print(WRITETERMINAL, input_buf);
+            print(WRITETERMINAL, "\n");
+        }
+    }
 }

@@ -13,6 +13,9 @@
 #include "./headers/costantiNopoli.h"
 #include "./testers/h/tconst.h"
 
+// debug
+// #include "print.h"
+
 /* -----------------------------------------------------------------------
  * Simboli esterni forniti dagli altri moduli
  * ----------------------------------------------------------------------- */
@@ -38,7 +41,7 @@ static int isShellProcess(support_t *sup) {
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
     //(void)sup;  /* non usato direttamente, ma utile per future estensioni */
-
+    // print("\n[CRASH] La Shell e' esplosa! Program Trap attivato.\n");
     /* V sul masterSemaphore (se il processo è la shell) oppure
        sul shellSemaphore (se è un programma figlio della shell).
        La logica corretta dipende dall'architettura shell/initProc;
@@ -76,7 +79,15 @@ void programTrapSupportHandler(support_t *sup) {
  * Restituisce la status word: byte basso = stato, byte 1 = carattere eco.
  */
 int transmitChar(int devNo, char c) {
-    termreg_t *termReg = TERM_REG_ADDR(devNo);
+    // termreg_t *termReg = TERM_REG_ADDR(devNo);
+
+    // /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
+    // unsigned int command =
+    //     ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
+
+    // return SYSCALL(DOIO, (int)&(termReg->transm_command), (int)command, 0);
+    unsigned int baseAddr = 0x10000254 + (devNo * 0x10);
+    termreg_t *termReg = (termreg_t *)baseAddr;
 
     /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
     unsigned int command =
@@ -95,7 +106,12 @@ int transmitChar(int devNo, char c) {
  * Restituisce la status word: byte basso = stato, byte 1 = carattere ricevuto.
  */
 int receiveChar(int devNo) {
-    termreg_t *termReg = TERM_REG_ADDR(devNo);
+    // termreg_t *termReg = TERM_REG_ADDR(devNo);
+
+    // return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
+    /* Stesso fix della transmitChar per la lettura da tastiera */
+    unsigned int baseAddr = 0x10000254 + (devNo * 0x10);
+    termreg_t *termReg = (termreg_t *)baseAddr;
 
     return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
 }
@@ -151,30 +167,46 @@ static void sys4WriteTerminal(support_t *sup) {
     char    *virtAddr   = (char *)savedState->reg_a1;
     int      len        = (int)  savedState->reg_a2;
 
+    // print("[SYS4] Inizio WriteTerminal\n");
+
     /* Il terminale della shell è il numero 0. */
     int devNo = SHELL_TERMINAL;
 
     /* Validazione lunghezza. */
     if (len < 0 || len > MAXSTRLENG) {
+        // print("[SYS4] ERRORE: Lunghezza non valida!\n");
         sys2Terminate(sup);
         /* non ritorna */
     }
+    // print("[SYS4] Lunghezza OK\n");
 
     /* Validazione indirizzo: la stringa deve stare interamente in kuseg. */
     if ((unsigned int)virtAddr < KUSEG ||
         (unsigned int)virtAddr + (unsigned int)len > USERSTACKTOP) {
+        // print("[SYS4] ERRORE: Indirizzo fuori da KUSEG!\n");
         sys2Terminate(sup);
         /* non ritorna */
     }
+    // print("[SYS4] Indirizzo OK. Inizio loop di trasmissione...\n");
 
     /* Trasmissione carattere per carattere. */
     int transmitted = 0;
     int i;
     for (i = 0; i < len; i++) {
-        int status = transmitChar(devNo, virtAddr[i]);
+        // if (i == 0) print("[SYS4] Provo a leggere virtAddr[0] dalla memoria virtuale...\n");
+        
+        // PUNTO CRITICO 1: Potrebbe scatenare un Page Fault!
+        char c = virtAddr[i]; 
+
+        // if (i == 0) print("[SYS4] Memoria letta! Chiamo transmitChar (DOIO)...\n");
+        
+        int status = transmitChar(devNo, c);
+
+        // if (i == 0) print("[SYS4] transmitChar sbloccata! Controllo status device...\n");
 
         /* Controlla solo il byte di stato. */
         if ((status & TERM_STATUS_MASK) != OKCHARTRANS) {
+            // print("[SYS4] ERRORE: Status device NON è OKCHARTRANS!\n");
             /* Errore device: ritorna il negativo dello status word. */
             savedState->reg_a0 = (unsigned int)(-(status));
             savedState->pc_epc += WORDLEN;
@@ -183,7 +215,7 @@ static void sys4WriteTerminal(support_t *sup) {
         }
         transmitted++;
     }
-
+    // print("[SYS4] Trasmissione completata con successo!\n");
     /* Successo. */
     savedState->reg_a0 = (unsigned int)transmitted;
     savedState->pc_epc += WORDLEN;
@@ -327,12 +359,15 @@ void generalExceptionHandler(void) {
      * GETEXECCODE (0x0000007C) maschera i bit 2-6; poi shift di CAUSESHIFT(2)
      * per ottenere il valore numerico del codice. */
     unsigned int cause   = sup->sup_exceptState[GENERALEXCEPT].cause;
-    unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    // unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    unsigned int excCode = cause & 0xFF;
 
     if (excCode == SYSEXCEPTION) {
         /* SYSCALL con a0 > 0 (Sezione 7). */
+        // print("[GEN_EXC] chiamo syscallexceptionhandler\n");
         syscallExceptionHandler(sup);
     } else {
+        // print("\n[GEN_EXC] Program Trap triggered. ExcCode: "); // ADD THIS
         /* Program Trap (Sezione 8) -> Grazia. */
         programTrapSupportHandler(sup);
     }
@@ -348,6 +383,11 @@ void generalExceptionHandler(void) {
 void syscallExceptionHandler(support_t *sup) {
     state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
     int sysNum = (int)savedState->reg_a0;
+
+    // if (sysNum == 2) print("[SYSCALL] La Shell chiede: TERMINATE (2)\n");
+    // if (sysNum == 4) print("[SYSCALL] La Shell chiede: WRITETERMINAL (4)\n");
+    // if (sysNum == 5) print("[SYSCALL] La Shell chiede: READTERMINAL (5)\n");
+    // if (sysNum == 6) print("[SYSCALL] La Shell chiede: EXECUTE (6)\n");
 
     switch (sysNum) {
         case TERMINATE:
