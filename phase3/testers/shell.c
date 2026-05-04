@@ -28,6 +28,7 @@ typedef struct {
     int   asid;
 } prog_entry_t;
 
+// TODO: fare + 1 in tutti gli asid
 static prog_entry_t tests[MAX_PROGS] = {
     { "fibEight", 1 },
     { "echo", 2 },

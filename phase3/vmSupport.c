@@ -8,9 +8,7 @@ static swap_t swapPoolTable[POOLSIZE];
 //definizione del semaforo
 static int swapPoolSemaphore;
 //frame corrente della page table da sostituire
-static int currentFrame = 0;
-//Array dei semafori dei device - 8 flash device
-int flashSem[DEVPERINT];
+int currentFrame = 0;
 
 void enterAtomicSession() {
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
@@ -109,7 +107,7 @@ int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
 void pager() {
     //otteniamo il puntatore alla support structure del processo
     support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0,0,0);
-    state_t *exceptionState = &(support -> sup_exceptState[0]);
+    state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
 
     //TODO capire se la maschera applicata è corretta - cosa da debug

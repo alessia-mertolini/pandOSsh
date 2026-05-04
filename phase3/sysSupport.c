@@ -23,7 +23,10 @@ extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shel
 extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
 extern void spawnUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
 
-
+//Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
+static int isShellProcess(support_t *sup) {
+    return (sup->sup_asid == SHELL_ASID);
+}
 
 /* =========================================================================
  * programTrapSupportHandler  [Section 8]
@@ -34,24 +37,23 @@ extern void spawnUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
  *   poi NSYS2 per terminare il processo.
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
-    (void)sup;  /* non usato direttamente, ma utile per future estensioni */
+    //(void)sup;  /* non usato direttamente, ma utile per future estensioni */
 
     /* V sul masterSemaphore (se il processo è la shell) oppure
        sul shellSemaphore (se è un programma figlio della shell).
        La logica corretta dipende dall'architettura shell/initProc;
        qui si esegue la V generica sul masterSemaphore [Section 9].
        In un'implementazione completa: distinguere shell da child.  */
-    SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
+    if(isShellProcess(sup)) {
+        SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
+    } else {
+        SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
+    }
 
     /* Termina il processo tramite NSYS2 */
     SYSCALL(TERMPROCESS, 0, 0, 0);
 
     /* UNREACHABLE – NSYS2 non ritorna mai*/
-}
-
-//Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
-static int isShellProcess(support_t *sup) {
-    return (sup->sup_asid == SHELL_ASID);
 }
 
 /* -----------------------------------------------------------------------
@@ -117,9 +119,9 @@ int receiveChar(int devNo) {
  * Non ritorna mai.
  */
 static void sys2Terminate(support_t *sup) {
-    if (isShellProcess(sup)) {
+    if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
-    } else {
+    } else { // user process was started by shell
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
     SYSCALL(TERMPROCESS, 0, 0, 0);
