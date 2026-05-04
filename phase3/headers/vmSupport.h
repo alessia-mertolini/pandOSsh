@@ -4,10 +4,14 @@
 #include "../../phase2/headers/constants.h"
 // l'unica cosa che prendiamo da qua e' STACK_PAGE_VPN e KUSEG_VPN
 
+#include "./sysSupport.h"
+
 #include "../../headers/types.h"
 #include "../../headers/const.h"
+#include "../../phase2/headers/constants.h"
 
 #include <uriscv/liburiscv.h>
+#include <uriscv/arch.h>
 
 //utilizzato nel 'pager'
 #define SWAP_POOL_START_ADDR (0x20000000 + (32 * PAGESIZE))

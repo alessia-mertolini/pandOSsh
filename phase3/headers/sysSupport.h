@@ -11,8 +11,8 @@
 
 #include <uriscv/liburiscv.h>
 #include "../../headers/const.h"
-#include "./headers/costantiNopoli.h"
-#include "./testers/h/tconst.h"
+#include "./costantiNopoli.h"
+#include "../testers/h/tconst.h"
 #include "../../headers/types.h"
 
 /*
@@ -50,6 +50,8 @@ int transmitChar(int devNo, char c);
  * carattere in byte successivo).
  */
 int receiveChar(int devNo);
+
+void programTrapSupportHandler(support_t *sup);
 
 #define TERM_REG_ADDR(devNo) \
         ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))

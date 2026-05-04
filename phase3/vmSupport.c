@@ -1,7 +1,4 @@
 #include "./headers/vmSupport.h"
-#include "./headers/sysSupport.h"
-#include <uriscv/liburiscv.h>
-#include "exceptions.h"
 
 //TODO controllare se 'swapPoolTable' e 'swapPoolSemaphore' devono essere static o no
 //TODO capire se sono estetiche le variabili qui
@@ -112,7 +109,7 @@ int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
 void pager() {
     //otteniamo il puntatore alla support structure del processo
     support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0,0,0);
-    state_t *exceptionState = &(support -> sup_exceptState[0]);
+    state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
 
     //TODO capire se la maschera applicata è corretta - cosa da debug
@@ -153,7 +150,7 @@ void pager() {
             int writeStatus = readOrWriteToFlash(oldProcAsid, oldProcVpn, i, FLASHWRITE);
             //int writeStatus = writeToFlash(oldProcAsid, oldProcVpn, i);
             if (writeStatus != OK) {
-                programTrapSupportHandler();
+                programTrapSupportHandler(support);
                 return;
             }
         }
@@ -161,7 +158,7 @@ void pager() {
         //9
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
         if (readStatus != OK) {
-            programTrapSupportHandler();
+            programTrapSupportHandler(support);
             return;
         }
 
@@ -180,7 +177,7 @@ void pager() {
         LDST(exceptionState);
     }
     else {
-        programTrapSupportHandler();
+        programTrapSupportHandler(support);
         return;
     }
 }
