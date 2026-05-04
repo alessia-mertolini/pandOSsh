@@ -59,4 +59,9 @@
 /* Estrae il codice di eccezione dal registro */
 #define CAUSE_EXCCODE(cause) ((cause) & CAUSE_EXCCODE_MASK)
 
+// ------------------ phase 3 -----------------------------
+#define VPN_MASK  0xFFFFF000
+#define KUSEG_VPN 0x80000
+#define STACK_PAGE_VPN 0xBFFFF
+
 #endif
