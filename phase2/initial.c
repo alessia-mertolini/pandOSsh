@@ -55,6 +55,8 @@ pcb_t *currentProcess;
  */
 int deviceSemaphores[SEMDEVLEN];
 
+extern void uTLB_RefillHandler(void);
+
 // Entry point di pandOSsh
 int main(void) {
     // Inizializzazione del passUpVector per il processore 0

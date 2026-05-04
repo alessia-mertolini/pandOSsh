@@ -10,9 +10,9 @@
  */
 
 #include <uriscv/liburiscv.h>
-#include <uriscv/types.h>
 #include "../../headers/const.h"
-#include "costantiNopoli.h"
+#include "./headers/costantiNopoli.h"
+#include "./testers/h/tconst.h"
 #include "../../headers/types.h"
 
 /*
@@ -43,12 +43,15 @@ void syscallExceptionHandler(support_t *sup);
 int transmitChar(int devNo, char c);
 
 /*
- * receiveChar  (usata da SYS5)
+ * receiveChar (usata da SYS5)
  *
  * Riceve un carattere dal terminale devNo tramite NSYS5.
  * Restituisce la status word del device (stato in byte basso,
  * carattere in byte successivo).
  */
 int receiveChar(int devNo);
+
+#define TERM_REG_ADDR(devNo) \
+        ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
 
 #endif /* SYSSUPPORT_H_INCLUDED */

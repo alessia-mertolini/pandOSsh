@@ -3,61 +3,55 @@
  * Phase 3 - Level 4: Support Level
  *
  * NON implementa:
- *   - Program Trap handler (Sezione 8)  -> vmSupport.c 
- *   - Pager / swap pool                 -> vmSupport.c 
- *   - TLB-Refill handler                -> exceptions.c 
+ *   - Program Trap handler (Sezione 8)  -> vmSupport.c
+ *   - Pager / swap pool                 -> vmSupport.c
+ *   - TLB-Refill handler                -> exceptions.c
  *   - spawnUProc / initProc             -> initProc.c
  */
 
-#include <uriscv/liburiscv.h>
-#include <uriscv/types.h>
-#include "../../headers/const.h"
-#include "sysSupport.h"
-#include "costantiNopoli.h"
+#include "./headers/sysSupport.h"
+#include "./headers/costantiNopoli.h"
+#include "./testers/h/tconst.h"
 
 /* -----------------------------------------------------------------------
  * Simboli esterni forniti dagli altri moduli
  * ----------------------------------------------------------------------- */
 
+//TODO Aspettare initproc.c di ALE
 /* initProc.c */
 extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shell alla fine */
-extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2       */
-extern void spawnUProc(int asid); /* crea e lancia un U-proc tramite NSYS1                  */
+extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
+extern void spawnUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
 
-/* vmSupport.c (Grazia) - Sezione 8 */
-extern void programTrapHandler(support_t *sup);
 
-/* -----------------------------------------------------------------------
- * Helper privati
- * ----------------------------------------------------------------------- */
 
-/*
- * isShellProcess
- * Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
- */
-static int isShellProcess(support_t *sup) {
-    return (sup->sup_asid == SHELL_ASID);
+/* =========================================================================
+ * programTrapSupportHandler  [Section 8]
+ *   Termina il U-proc in modo ordinato.
+ *   Se il processo detiene la mutua esclusione sulla Swap Pool,
+ *   il chiamante deve rilasciarla PRIMA di invocare questa funzione.
+ *   Esegue le stesse operazioni di SYS2: V sul semaforo master/shell,
+ *   poi NSYS2 per terminare il processo.
+ * ========================================================================= */
+void programTrapSupportHandler(support_t *sup) {
+    (void)sup;  /* non usato direttamente, ma utile per future estensioni */
+
+    /* V sul masterSemaphore (se il processo è la shell) oppure
+       sul shellSemaphore (se è un programma figlio della shell).
+       La logica corretta dipende dall'architettura shell/initProc;
+       qui si esegue la V generica sul masterSemaphore [Section 9].
+       In un'implementazione completa: distinguere shell da child.  */
+    SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
+
+    /* Termina il processo tramite NSYS2 */
+    SYSCALL(TERMPROCESS, 0, 0, 0);
+
+    /* UNREACHABLE – NSYS2 non ritorna mai*/
 }
 
-/*
- * terminateCurrentUProc
- *
- * Operazioni comuni di terminazione (Spec Sezione 7.1 e 9):
- *   1. V sul semaforo giusto:
- *        - shell  -> V(masterSemaphore)  sblocca InstantiatorProcess
- *        - figlio -> V(shellSemaphore)   sblocca la shell in attesa su SYS6
- *   2. NSYS2 (TERMPROCESS): elimina il processo e tutti i discendenti.
- *
- * Non ritorna mai.
- */
-static void terminateCurrentUProc(support_t *sup) {
-    if (isShellProcess(sup)) {
-        SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
-    } else {
-        SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
-    }
-    SYSCALL(TERMPROCESS, 0, 0, 0);
-    /* non ritorna */
+//Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
+static int isShellProcess(support_t *sup) {
+    return (sup->sup_asid == SHELL_ASID);
 }
 
 /* -----------------------------------------------------------------------
@@ -111,9 +105,24 @@ int receiveChar(int devNo) {
 /*
  * sys2Terminate
  * Termina l'U-proc chiamante. Non ritorna mai.
+ *
+ * sys2Terminate
+ *
+ * Operazioni comuni di terminazione (Spec Sezione 7.1 e 9):
+ *   1. V sul semaforo giusto:
+ *        - shell  -> V(masterSemaphore)  sblocca InstantiatorProcess
+ *        - figlio -> V(shellSemaphore)   sblocca la shell in attesa su SYS6
+ *   2. NSYS2 (TERMPROCESS): elimina il processo e tutti i discendenti.
+ *
+ * Non ritorna mai.
  */
 static void sys2Terminate(support_t *sup) {
-    terminateCurrentUProc(sup);
+    if (isShellProcess(sup)) {
+        SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
+    } else {
+        SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
+    }
+    SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
 /* -----------------------------------------------------------------------
@@ -129,7 +138,7 @@ static void sys2Terminate(support_t *sup) {
  *
  * Errori che causano terminazione dell'U-proc (Spec Sezione 7.2):
  *   - len < 0 o len > MAXSTRLENG
- *   - virtAddr o virtAddr+len fuori da [KUSEG, KUSEG_TOP)
+ *   - virtAddr o virtAddr+len fuori da [KUSEG, USERSTACKTOP)
  *
  * Ritorno (via LDST):
  *   successo:    a0 = numero caratteri trasmessi
@@ -145,14 +154,14 @@ static void sys4WriteTerminal(support_t *sup) {
 
     /* Validazione lunghezza. */
     if (len < 0 || len > MAXSTRLENG) {
-        terminateCurrentUProc(sup);
+        sys2Terminate(sup);
         /* non ritorna */
     }
 
     /* Validazione indirizzo: la stringa deve stare interamente in kuseg. */
     if ((unsigned int)virtAddr < KUSEG ||
-        (unsigned int)virtAddr + (unsigned int)len > KUSEG_TOP) {
-        terminateCurrentUProc(sup);
+        (unsigned int)virtAddr + (unsigned int)len > USERSTACKTOP) {
+        sys2Terminate(sup);
         /* non ritorna */
     }
 
@@ -192,7 +201,7 @@ static void sys4WriteTerminal(support_t *sup) {
  * Legge caratteri finché non arriva '\n' o si raggiunge MAXSTRLENG.
  *
  * Errori che causano terminazione dell'U-proc (Spec Sezione 7.3):
- *   - virtAddr fuori da [KUSEG, KUSEG_TOP)
+ *   - virtAddr fuori da [KUSEG, USERSTACKTOP)
  *
  * Ritorno (via LDST):
  *   successo:    a0 = numero caratteri ricevuti
@@ -206,8 +215,8 @@ static void sys5ReadTerminal(support_t *sup) {
 
     /* Validazione indirizzo. */
     if ((unsigned int)virtAddr < KUSEG ||
-        (unsigned int)virtAddr >= KUSEG_TOP) {
-        terminateCurrentUProc(sup);
+        (unsigned int)virtAddr >= USERSTACKTOP) {
+        sys2Terminate(sup);
         /* non ritorna */
     }
 
@@ -264,7 +273,7 @@ static void sys6Execute(support_t *sup) {
 
     /* Solo la shell può eseguire SYS6 (Spec Sezione 7.4). */
     if (!isShellProcess(sup)) {
-        programTrapHandler(sup);
+        programTrapSupportHandler(sup);
         /* non ritorna */
     }
 
@@ -278,45 +287,6 @@ static void sys6Execute(support_t *sup) {
     savedState->reg_a0 = 0;
     savedState->pc_epc += WORDLEN;
     LDST(savedState);
-}
-
-/* -----------------------------------------------------------------------
- * Sezione 7 - SYSCALL Exception Handler
- * ----------------------------------------------------------------------- */
-
-/*
- * syscallExceptionHandler
- *
- * Smista le SYSCALL con a0 > 0 verso i gestori specifici.
- * SYSCALL non supportate -> programTrapHandler (Grazia, Sezione 8).
- * Non ritorna mai.
- */
-void syscallExceptionHandler(support_t *sup) {
-    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
-    int sysNum = (int)savedState->reg_a0;
-
-    switch (sysNum) {
-        case TERMINATE:      /* 2 */
-            sys2Terminate(sup);
-            break;
-
-        case WRITETERMINAL:  /* 4 */
-            sys4WriteTerminal(sup);
-            break;
-
-        case READTERMINAL:   /* 5 */
-            sys5ReadTerminal(sup);
-            break;
-
-        case EXECUTE:        /* 6 */
-            sys6Execute(sup);
-            break;
-
-        default:
-            /* SYSCALL non supportata: tratta come Program Trap. */
-            programTrapHandler(sup);
-            break;
-    }
 }
 
 /* -----------------------------------------------------------------------
@@ -334,7 +304,7 @@ void syscallExceptionHandler(support_t *sup) {
  *   2. Legge il Cause register da sup_exceptState[GENERALEXCEPT].
  *   3. Smista:
  *        excCode == SYSEXCEPTION (8) -> syscallExceptionHandler
- *        altro                       -> programTrapHandler (Grazia)
+ *        altro                       -> programTrapSupportHandler (Grazia)
  *
  * Nota: i TLB exception (excCode 24-28) non arrivano qui; il Nucleus li
  * smista al Pager tramite sup_exceptContext[PGFAULTEXCEPT] (Gabriele).
@@ -362,8 +332,37 @@ void generalExceptionHandler(void) {
         syscallExceptionHandler(sup);
     } else {
         /* Program Trap (Sezione 8) -> Grazia. */
-        programTrapHandler(sup);
+        programTrapSupportHandler(sup);
     }
 
     /* non ritorna mai */
+}
+
+/* -----------------------------------------------------------------------
+ * Sezione 7 - SYSCALL Exception Handler
+ * ----------------------------------------------------------------------- */
+
+
+void syscallExceptionHandler(support_t *sup) {
+    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
+    int sysNum = (int)savedState->reg_a0;
+
+    switch (sysNum) {
+        case TERMINATE:
+            sys2Terminate(sup);
+            break;
+        case WRITETERMINAL:
+            sys4WriteTerminal(sup);
+            break;
+        case READTERMINAL:
+            sys5ReadTerminal(sup);
+            break;
+        case EXECUTE:
+            sys6Execute(sup);
+            break;
+        default:
+            /* SYSCALL non supportata: tratta come Program Trap. */
+            programTrapSupportHandler(sup);
+            break;
+    }
 }

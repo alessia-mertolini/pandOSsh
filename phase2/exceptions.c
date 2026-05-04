@@ -7,6 +7,7 @@
  * ========================================================================= */
 
 #include "./headers/exceptions.h"
+#include "headers/constants.h"
 #include "headers/scheduler.h"
 #include <uriscv/const.h>
 #include <uriscv/liburiscv.h>
@@ -419,3 +420,42 @@ static int getSemaphoreIndex(int *commandAddr) {
     }
     return semIdx;
 }
+
+// ------------ phase 3 ------------------------
+// will locate the correct page table entry in some support level data structure
+void uTLB_RefillHandler() { // -> cache miss
+    state_t *savedState = (state_t *) BIOSDATAPAGE;
+    unsigned int faultEntryHi = savedState->entry_hi;
+
+    // con la maschera isoliamo il numero della pagina (prime 5 posizioni esadecimali)
+    // per ottenere il corretto vpn shiftiamo poi a dx di 12 bit (ovvero 3 posizioni esadecimali)
+    unsigned int vpn = (faultEntryHi & VPN_MASK) >> VPNSHIFT; // top 20 bit = numero di pagina
+
+    if (currentProcess == NULL || currentProcess->p_supportStruct == NULL) {
+        PANIC();
+    }
+
+    // Determina l'indice nella Page Table
+    int p;
+    if (vpn == STACK_PAGE_VPN) { // 0xBFFFF -> entry 31
+        p = USERPGTBLSIZE - 1;   // 31
+    } else {
+        p = (int)(vpn - KUSEG_VPN); // 0x80000..0x8001E -> 0..30
+    }
+
+    // Controllo di sicurezza: l'indirizzo era fuori dai range validi di memoria utente?
+    if (p < 0 || p >= USERPGTBLSIZE) {
+        // Un processo ha tentato di accedere a un'area di memoria inesistente.
+        // Possiamo fermare tutto per sicurezza.
+        PANIC(); 
+    }
+    
+    pteEntry_t *pageTable = &(currentProcess->p_supportStruct->sup_privatePgTbl[p]);
+
+    // 3. Write this Page Table entry into the TLB
+    setENTRYHI(pageTable->pte_entryHI);
+    setENTRYLO(pageTable->pte_entryLO);
+    TLBWR(); // scrive in uno slot random del TLB
+    // 4. Return control to the Current Process
+    LDST((state_t*) BIOSDATAPAGE);
+} 
