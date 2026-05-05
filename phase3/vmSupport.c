@@ -3,7 +3,6 @@
 // debug
 // #include "print.h"
 
-
 //TODO controllare se 'swapPoolTable' e 'swapPoolSemaphore' devono essere static o no
 //TODO capire se sono estetiche le variabili qui
 //definizione della swapPoolTable utilizzando le strutture definite in types.h
@@ -118,14 +117,6 @@ void pager() {
     //TODO capire se la maschera applicata è corretta - cosa da debug
     //ricaviamo il codice di eccezione
     unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
-    // if (excCode == 12) print("[PAGER] Rilevato Instruction Page Fault (Codice 12)\n");
-    // if (excCode == 13) print("[PAGER] Rilevato Load Page Fault (Codice 13)\n");
-    // if (excCode == 15) print("[PAGER] Rilevato Store Page Fault (Codice 15)\n");
-    // if (excCode == TLBINVLDL) print("[PAGER] Rilevato Load Page Fault (Codice TLBNVLDL)\n");
-    // if (excCode == TLBINVLDS) print("[PAGER] Rilevato Store Page Fault (Codice TLBINVLDS)\n");
-
-    // if(excCode == 6) print("[PAGER] Rilevato Codice 6\n");
-
 
     //TLBINVLDL := Load - TLBINVLDs := Store
     if (excCode == 6 || excCode == 7) {
@@ -138,15 +129,10 @@ void pager() {
         int p;
         if (missing_vpn == 0xBFFFF) {
             p = 31; // È lo stack!
-            // print("[PAGER] Fault sullo STACK (Pagina 31)\n");
         } else {
             p = missing_vpn - 0x80000; // Sono le pagine di codice (0-30)
-            // Opzionale, ma bello da vedere:
-            // print("[PAGER] Fault su pagina di codice\n"); 
         }
         
-        // if (p == 0) print("[PAGER] Fault on page 0 (0x80000)\n");
-        // else if (p == 31) print("[PAGER] Fault on stack page 31\n");
         //algoritmo di prelevamento pagine round-robin
         int i; //i="Indice del frame nella swap pool". E' lo spazio fisico scelto per ospitare la pagina "p"
         pageReplacementAlgorithm(&i);
@@ -169,9 +155,6 @@ void pager() {
             exitAtomicSession();
 
             //8c)
-
-            //int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command);
-
             int writeStatus = readOrWriteToFlash(oldProcAsid, oldProcVpn, i, FLASHWRITE);
             //int writeStatus = writeToFlash(oldProcAsid, oldProcVpn, i);
             if (writeStatus != OK) {
@@ -181,14 +164,11 @@ void pager() {
         }
 
         //9
-        // print("[PAGER] Attempting to read from flash...\n"); // ADD THIS
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
         if (readStatus != OK) {
-            // print("[PAGER] FATAL: readOrWriteToFlash failed!\n"); // ADD THIS
             programTrapSupportHandler(support);
             return;
         }
-        // print("[PAGER] Read successful. Updating PTE...\n"); // ADD THIS
 
         //10
         swapPoolTable[i].sw_asid = support -> sup_asid;
@@ -202,11 +182,9 @@ void pager() {
         updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
 
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
-        // print("[PAGER] Pager finished successfully.\n"); // ADD THIS
         LDST(exceptionState);
     }
     else {
-        // print("[PAGER] FATAL: Non-TLB exception code in pager!\n"); // ADD THIS
         programTrapSupportHandler(support);
         return;
     }
