@@ -13,6 +13,7 @@
 #include "./headers/costantiNopoli.h"
 #include "./testers/h/tconst.h"
 #include "print.h"
+#include "vmSupport.h"
 
 // debug
 // #include "print.h"
@@ -42,7 +43,7 @@ static int isShellProcess(support_t *sup) {
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
     //(void)sup;  /* non usato direttamente, ma utile per future estensioni */
-    //print("\n[CRASH] La Shell e' esplosa! Program Trap attivato.\n");
+    print("\n[CRASH] La Shell e' esplosa! Program Trap attivato.\n");
     /* V sul masterSemaphore (se il processo è la shell) oppure
        sul shellSemaphore (se è un programma figlio della shell).
        La logica corretta dipende dall'architettura shell/initProc;
@@ -136,6 +137,10 @@ int receiveChar(int devNo) {
  * Non ritorna mai.
  */
 static void sys2Terminate(support_t *sup) {
+    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+    releaseFramesOfProcess(sup->sup_asid);
+    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell

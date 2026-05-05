@@ -21,6 +21,8 @@ extern int flashSem[DEVPERINT];
 
 //TODO guardare se alcune di queste funzioni devono andare "static"
 
+void releaseFramesOfProcess(int asid);
+
 void initPageTable(support_t *s);
 
 /*
@@ -32,7 +34,7 @@ void initPageTable(support_t *s);
 void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags);
 
 //Restituisce l'indirizzo fisico di un frame della Swap Pool
-static memaddr frameAddressFunction(int frameIdx);
+memaddr frameAddressFunction(int frameIdx);
 
 //Funzione di inizializzazione delle strutture dati necessarie alla swap pool
 //'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'

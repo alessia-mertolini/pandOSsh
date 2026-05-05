@@ -10,7 +10,7 @@
 //impostiamo la swapPoolTable come da specifiche
 static swap_t swapPoolTable[POOLSIZE];
 //definizione del semaforo
-static int swapPoolSemaphore;
+int swapPoolSemaphore;
 //frame corrente della page table da sostituire
 int currentFrame = 0;
 
@@ -22,8 +22,19 @@ void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
 }
 
+void releaseFramesOfProcess(int asid) {
+    for (int i = 0; i < POOLSIZE; i++) {
+        if (swapPoolTable[i].sw_asid == asid) {
+            swapPoolTable[i].sw_asid = -1;
+            swapPoolTable[i].sw_pageNo = -1;
+            swapPoolTable[i].sw_pte = NULL;
+        }
+    }
+    TLBCLR();
+}
+
 //Restituisce l'indirizzo fisico di un frame della Swap Pool
-static memaddr frameAddressFunction(int frameIdx) {
+memaddr frameAddressFunction(int frameIdx) {
     return (memaddr)(SWAP_POOL_START_ADDR + frameIdx * PAGESIZE);
 }
 
@@ -67,7 +78,7 @@ void updateTLB(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags
 }
 
 void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
-    print("[UPDATE_TLB] iniziata\n");
+    //print("[UPDATE_TLB] iniziata\n");
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
     pageTable->pte_entryLO = physicalAddr | bitFlags;
     //TODO DOPO DEBUG USARE updateTLB()
@@ -76,13 +87,18 @@ void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags
 
 //algoritmo Round Robin per la sostituzione delle pagine
 void pageReplacementAlgorithm(int *i) {
-    print("[PAGE_REPLACEMENT] iniziata\n");
+    for (int j = 0; j < POOLSIZE; j++) {
+        if (swapPoolTable[j].sw_asid == -1) {
+            *i = j;
+            return; // Frame vuoto trovato! Usciamo senza toccare currentFrame
+        }
+    }
     *i = currentFrame;
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
 //vpn = p = page number e frameNumber = i
 int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
-    print("[READ_WRITE] iniziata\n");
+    //print("[READ_WRITE] iniziata\n");
     memaddr frameAddress = frameAddressFunction(frameNumber);
     //Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
     int devNo = asid - 1;
@@ -99,16 +115,16 @@ int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
     unsigned int cmd = (vpn << 8) | command;
     unsigned int status = SYSCALL(DOIO, (int)&devReg->command, cmd, 0);
 
-    print("[DOIO] effettuata\n");
+    //print("[DOIO] effettuata\n");
 
     //Rilascia il semaforo del device
     SYSCALL(VERHOGEN, (int)&flashSem[devNo], 0, 0);
 
-    print("[V] effettuata\n");
+    //print("[V] effettuata\n");
     if((status & 0xFF) == 1) {
         return OK; //operazione effettuata con successo
     } else {
-        print("[PROBLEMI]\n");
+        //print("[PROBLEMI]\n");
         return -1;
     }
 }
@@ -123,12 +139,11 @@ void pager() {
     //TODO capire se la maschera applicata è corretta - cosa da debug
     //ricaviamo il codice di eccezione
     //unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
-    unsigned int excCode = cause & 0xFF;
-
+    unsigned int excCode = CAUSE_EXCCODE(cause);
 
     //TLBINVLDL := Load - TLBINVLDs := Store
     if (excCode >= 24 && excCode <= 28) {
-        print("[CODICI] Rilevati Codici 6 o 7\n");
+        //print("[CODICI] Rilevati Codici 6 o 7\n");
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0,0);
 
         /* 1. Estraiamo il VPN puro azzerando i 12 bit bassi */
@@ -138,15 +153,15 @@ void pager() {
         int p;
         if (missing_vpn == 0xBFFFF) {
             p = 31; // È lo stack!
-            // print("[PAGER] Fault sullo STACK (Pagina 31)\n");
+            // //print("[PAGER] Fault sullo STACK (Pagina 31)\n");
         } else {
             p = missing_vpn - 0x80000; // Sono le pagine di codice (0-30)
             // Opzionale, ma bello da vedere:
-            // print("[PAGER] Fault su pagina di codice\n"); 
+            // //print("[PAGER] Fault su pagina di codice\n"); 
         }
         
-        // if (p == 0) print("[PAGER] Fault on page 0 (0x80000)\n");
-        // else if (p == 31) print("[PAGER] Fault on stack page 31\n");
+        // if (p == 0) //print("[PAGER] Fault on page 0 (0x80000)\n");
+        // else if (p == 31) //print("[PAGER] Fault on stack page 31\n");
         //algoritmo di prelevamento pagine round-robin
         int i; //i="Indice del frame nella swap pool". E' lo spazio fisico scelto per ospitare la pagina "p"
         pageReplacementAlgorithm(&i);
@@ -181,14 +196,14 @@ void pager() {
         }
 
         //9
-        print("[PAGER] Attempting to read from flash...\n"); // ADD THIS
+        //print("[PAGER] Attempting to read from flash...\n"); // ADD THIS
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
         if (readStatus != OK) {
-            print("[PAGER] FATAL: readOrWriteToFlash failed!\n"); // ADD THIS
+            //print("[PAGER] FATAL: readOrWriteToFlash failed!\n"); // ADD THIS
             programTrapSupportHandler(support);
             return;
         }
-        // print("[PAGER] Read successful. Updating PTE...\n"); // ADD THIS
+        // //print("[PAGER] Read successful. Updating PTE...\n"); // ADD THIS
 
         //10
         swapPoolTable[i].sw_asid = support -> sup_asid;
@@ -204,11 +219,11 @@ void pager() {
         exitAtomicSession();
 
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
-        print("[PAGER] Pager Terminato\n"); // ADD THIS
+        //print("[PAGER] Pager Terminato\n"); // ADD THIS
         LDST(exceptionState);
     }
     else {
-        print("[PAGER] FATAL: Non-TLB exception code in pager!\n"); // ADD THIS
+        //print("[PAGER] FATAL: Non-TLB exception code in pager!\n"); // ADD THIS
         programTrapSupportHandler(support);
         return;
     }
