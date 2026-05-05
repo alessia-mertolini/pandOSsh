@@ -64,7 +64,7 @@ int main() {
     char input_buf[128];
     int  nread, i, found;
 
-    print(WRITETERMINAL, "PandOSsh shell ready. Type a program name or 'exit'.\n");
+    print(WRITETERMINAL, "[OK] PandOSsh shell ready. Type a program name or 'exit'.\n");
 
     while (1) {
         /* Prompt */

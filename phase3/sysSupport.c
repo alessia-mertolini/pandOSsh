@@ -12,6 +12,7 @@
 #include "./headers/sysSupport.h"
 #include "./headers/costantiNopoli.h"
 #include "./testers/h/tconst.h"
+#include "print.h"
 
 // debug
 // #include "print.h"
@@ -41,7 +42,7 @@ static int isShellProcess(support_t *sup) {
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
     //(void)sup;  /* non usato direttamente, ma utile per future estensioni */
-    // print("\n[CRASH] La Shell e' esplosa! Program Trap attivato.\n");
+    //print("\n[CRASH] La Shell e' esplosa! Program Trap attivato.\n");
     /* V sul masterSemaphore (se il processo è la shell) oppure
        sul shellSemaphore (se è un programma figlio della shell).
        La logica corretta dipende dall'architettura shell/initProc;
@@ -248,8 +249,7 @@ static void sys5ReadTerminal(support_t *sup) {
     int devNo = SHELL_TERMINAL;
 
     /* Validazione indirizzo. */
-    if ((unsigned int)virtAddr < KUSEG ||
-        (unsigned int)virtAddr >= USERSTACKTOP) {
+    if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
         sys2Terminate(sup);
         /* non ritorna */
     }
@@ -369,6 +369,7 @@ void generalExceptionHandler(void) {
     } else {
         // print("\n[GEN_EXC] Program Trap triggered. ExcCode: "); // ADD THIS
         /* Program Trap (Sezione 8) -> Grazia. */
+        print("\n[PROGRAM TRAP]\n");
         programTrapSupportHandler(sup);
     }
 
