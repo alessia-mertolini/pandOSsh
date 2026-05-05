@@ -122,18 +122,12 @@ void pager() {
 
     //TODO capire se la maschera applicata è corretta - cosa da debug
     //ricaviamo il codice di eccezione
-    unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
-    // if (excCode == 12) print("[PAGER] Rilevato Instruction Page Fault (Codice 12)\n");
-    // if (excCode == 13) print("[PAGER] Rilevato Load Page Fault (Codice 13)\n");
-    // if (excCode == 15) print("[PAGER] Rilevato Store Page Fault (Codice 15)\n");
-    // if (excCode == TLBINVLDL) print("[PAGER] Rilevato Load Page Fault (Codice TLBNVLDL)\n");
-    // if (excCode == TLBINVLDS) print("[PAGER] Rilevato Store Page Fault (Codice TLBINVLDS)\n");
-
-    // if(excCode == 6) print("[PAGER] Rilevato Codice 6\n");
+    //unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    unsigned int excCode = cause & 0xFF;
 
 
     //TLBINVLDL := Load - TLBINVLDs := Store
-    if (excCode == 6 || excCode == 7) {
+    if (excCode >= 24 && excCode <= 28) {
         print("[CODICI] Rilevati Codici 6 o 7\n");
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0,0);
 
