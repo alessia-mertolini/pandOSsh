@@ -19,6 +19,7 @@ void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
 }
 
+// * NON UTILIZZATA
 void releaseFramesOfProcess(int asid) {
     for (int i = 0; i < POOLSIZE; i++) {
         if (swapPoolTable[i].sw_asid == asid) {
@@ -227,7 +228,7 @@ void pager() {
     }
 }
 
-//TODO assegnare ASID values
+// * NON UTILIZZATA
 void initPageTable(support_t *s) {
     for(int i = 0; i < USERPGTBLSIZE; i++) {
         volatile unsigned int vpn;

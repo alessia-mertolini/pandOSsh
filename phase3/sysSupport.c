@@ -95,12 +95,16 @@ int transmitChar(int devNo, char c) {
 
     // return SYSCALL(DOIO, (int)&(termReg->transm_command), (int)command, 0);
 
-    unsigned int baseAddr = 0x10000254 + (devNo * 0x10);
+    unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
     termreg_t *termReg = (termreg_t *)baseAddr;
 
     /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
-    unsigned int command =
-        ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
+    /*
+        Esempio: c -> 97 -> 0x61 -> 0x00000061
+        Shift: 0x00006100
+        Or: 0x00006102    
+    */
+    unsigned int command = ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
 
     return SYSCALL(DOIO, (int)&(termReg->transm_command), (int)command, 0);
 }
@@ -146,9 +150,10 @@ int receiveChar(int devNo) {
  * Non ritorna mai.
  */
 static void sys2Terminate(support_t *sup) {
-    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
-    releaseFramesOfProcess(sup->sup_asid);
-    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+    // * il seguente codice e' ottimizzazione post codice funzionante
+    // SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+    // releaseFramesOfProcess(sup->sup_asid);
+    // SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
 
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
@@ -178,9 +183,9 @@ static void sys2Terminate(support_t *sup) {
  *   errore I/O:  a0 = -(status word del device)
  */
 static void sys4WriteTerminal(support_t *sup) {
-    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
-    char    *virtAddr   = (char *)savedState->reg_a1;
-    int      len        = (int)  savedState->reg_a2;
+    state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
+    unsigned int virtAddr   = savedState->reg_a1; // primo carattere trasmesso
+    int len = (int) savedState->reg_a2;
 
     /* Il terminale della shell è il numero 0. */
     int devNo = SHELL_TERMINAL;
@@ -192,18 +197,19 @@ static void sys4WriteTerminal(support_t *sup) {
     }
 
     /* Validazione indirizzo: la stringa deve stare interamente in kuseg. */
-    if ((unsigned int)virtAddr < KUSEG ||
-        (unsigned int)virtAddr + (unsigned int)len > USERSTACKTOP) {
+    if (virtAddr < KUSEG || virtAddr + len > USERSTACKTOP) {
         sys2Terminate(sup);
         /* non ritorna */
     }
 
     /* Trasmissione carattere per carattere. */
+    char *str = (char *)virtAddr;
+
     int transmitted = 0;
     int i;
     for (i = 0; i < len; i++) {
         // PUNTO CRITICO 1: Potrebbe scatenare un Page Fault!
-        char c = virtAddr[i]; 
+        char c = str[i]; 
         
         int status = transmitChar(devNo, c);
 
@@ -382,7 +388,7 @@ void generalExceptionHandler(void) {
 
 
 void syscallExceptionHandler(support_t *sup) {
-    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
+    state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
     int sysNum = (int)savedState->reg_a0;
 
     switch (sysNum) {

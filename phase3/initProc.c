@@ -13,6 +13,9 @@
     - Sezione 5.2 corretta (solo TLBCLR al momento)
     - Sezione 5.3 corretta
     - Sezione 5.4 corretta
+    - Sezione 6 corretta
+    - Sezione 7.1 corretta
+    - Sezione 7.2 corretta
 */
 
 #include "../headers/const.h"
