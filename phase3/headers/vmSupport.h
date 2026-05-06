@@ -80,4 +80,6 @@ int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command);
  */
 void pager();
 
+void releaseFramesOfProcess(int asid);
+
 #endif

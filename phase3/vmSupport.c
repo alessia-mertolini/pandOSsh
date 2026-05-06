@@ -1,7 +1,7 @@
 #include "./headers/vmSupport.h"
 
 // debug
-// #include "print.h"
+#include "print.h"
 
 //TODO controllare se 'swapPoolTable' e 'swapPoolSemaphore' devono essere static o no
 //TODO capire se sono estetiche le variabili qui
@@ -9,7 +9,7 @@
 //impostiamo la swapPoolTable come da specifiche
 static swap_t swapPoolTable[POOLSIZE];
 //definizione del semaforo
-static int swapPoolSemaphore;
+int swapPoolSemaphore;
 //frame corrente della page table da sostituire
 int currentFrame = 0;
 
@@ -19,6 +19,21 @@ void enterAtomicSession() {
 }
 void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
+}
+
+void releaseFramesOfProcess(int asid) {
+    for (int i = 0; i < POOLSIZE; i++) {
+        if (swapPoolTable[i].sw_asid == asid) {
+            // INVALIDS LA PAGE TABLE ENTRY PRIMA DI SCOLLEGARLA
+            if (swapPoolTable[i].sw_pte != NULL) {
+                swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON; 
+            }
+            swapPoolTable[i].sw_asid = -1;
+            swapPoolTable[i].sw_pageNo = -1;
+            swapPoolTable[i].sw_pte = NULL;
+        }
+    }
+    TLBCLR();
 }
 
 //Restituisce l'indirizzo fisico di un frame della Swap Pool
@@ -129,8 +144,16 @@ void pager() {
         int p;
         if (missing_vpn == 0xBFFFF) {
             p = 31; // È lo stack!
+            // //print("[PAGER] Fault sullo STACK (Pagina 31)\n");
+        } else if (missing_vpn >= 0x80000 && missing_vpn <= 0x8001E) { 
+            p = missing_vpn - 0x80000; // Pagine di codice (0-30)
         } else {
-            p = missing_vpn - 0x80000; // Sono le pagine di codice (0-30)
+            // ERRORE FATALE DELLA SHELL: Segmentation Fault!
+            print("\n[PAGER] FATAL: Segment Fault! La Shell ha letto memoria illegale.\n");
+            // Dobbiamo rilasciare il semaforo prima di ucciderla!
+            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
+            programTrapSupportHandler(support);
+            return;
         }
         
         //algoritmo di prelevamento pagine round-robin

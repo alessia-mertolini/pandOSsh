@@ -12,6 +12,8 @@
 #include "./headers/sysSupport.h"
 #include "./headers/costantiNopoli.h"
 #include "./testers/h/tconst.h"
+#include "print.h"
+#include "./headers/vmSupport.h"
 
 // debug
 // #include "print.h"
@@ -25,6 +27,7 @@
 extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shell alla fine */
 extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
 extern void launchUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
+extern int swapPoolSemaphore;
 
 //Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
 static int isShellProcess(support_t *sup) {
@@ -41,6 +44,13 @@ static int isShellProcess(support_t *sup) {
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
     //(void)sup;  /* non usato direttamente, ma utile per future estensioni */
+    // print("\n[CRASH] La Shell e' esplosa! Program Trap attivato.\n");
+
+    // FIX FONDAMENTALE: Puliamo i frame fantasma prima di morire!
+    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+    releaseFramesOfProcess(sup->sup_asid);
+    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+
     /* V sul masterSemaphore (se il processo è la shell) oppure
        sul shellSemaphore (se è un programma figlio della shell).
        La logica corretta dipende dall'architettura shell/initProc;
@@ -292,7 +302,7 @@ static void sys5ReadTerminal(support_t *sup) {
  */
 static void sys6Execute(support_t *sup) {
     state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
-    int asid = (int)savedState->reg_a1;
+    int requested_asid = (int)savedState->reg_a1;
 
     /* Solo la shell può eseguire SYS6 (Spec Sezione 7.4). */
     if (!isShellProcess(sup)) {
@@ -300,8 +310,10 @@ static void sys6Execute(support_t *sup) {
         /* non ritorna */
     }
 
+    int safe_asid = 2 + ((requested_asid - 2) % (UPROCMAX - 1));
+
     /* Crea e lancia l'U-proc (initProc.c). */
-    launchUProc(asid);
+    launchUProc(safe_asid);
 
     /* Blocca la shell fino alla terminazione del figlio. */
     SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
@@ -372,6 +384,10 @@ void syscallExceptionHandler(support_t *sup) {
     int sysNum = (int)savedState->reg_a0;
 
     switch (sysNum) {
+        case 1:
+            print("gemini aveva ragione\n");
+            HALT();
+            break;
         case TERMINATE:
             sys2Terminate(sup);
             break;
