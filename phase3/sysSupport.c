@@ -44,7 +44,6 @@ static int isShellProcess(support_t *sup) {
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
     //(void)sup;  /* non usato direttamente, ma utile per future estensioni */
-    // print("\n[CRASH] La Shell e' esplosa! Program Trap attivato.\n");
 
     // FIX FONDAMENTALE: Puliamo i frame fantasma prima di morire!
     SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
@@ -148,6 +147,10 @@ int receiveChar(int devNo) {
  * Non ritorna mai.
  */
 static void sys2Terminate(support_t *sup) {
+    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+    releaseFramesOfProcess(sup->sup_asid);
+    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
@@ -247,8 +250,7 @@ static void sys5ReadTerminal(support_t *sup) {
     int devNo = SHELL_TERMINAL;
 
     /* Validazione indirizzo. */
-    if ((unsigned int)virtAddr < KUSEG ||
-        (unsigned int)virtAddr >= USERSTACKTOP) {
+    if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
         sys2Terminate(sup);
         /* non ritorna */
     }
@@ -361,13 +363,15 @@ void generalExceptionHandler(void) {
      * per ottenere il valore numerico del codice. */
     unsigned int cause   = sup->sup_exceptState[GENERALEXCEPT].cause;
     // unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
-    unsigned int excCode = cause & 0xFF;
+    // unsigned int excCode = cause & 0xFF;
+    unsigned int excCode = CAUSE_EXCCODE(cause);
 
     if (excCode == SYSEXCEPTION) {
         /* SYSCALL con a0 > 0 (Sezione 7). */
         syscallExceptionHandler(sup);
     } else {
         /* Program Trap (Sezione 8) -> Grazia. */
+        print("\n[PROGRAM TRAP]\n");
         programTrapSupportHandler(sup);
     }
 
@@ -384,10 +388,6 @@ void syscallExceptionHandler(support_t *sup) {
     int sysNum = (int)savedState->reg_a0;
 
     switch (sysNum) {
-        case 1:
-            print("gemini aveva ragione\n");
-            HALT();
-            break;
         case TERMINATE:
             sys2Terminate(sup);
             break;

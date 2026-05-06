@@ -15,6 +15,8 @@
 #include "../testers/h/tconst.h"
 #include "../../headers/types.h"
 
+extern int swapPoolSemaphore;
+
 /*
  * generalExceptionHandler  (Sezione 6)
  *

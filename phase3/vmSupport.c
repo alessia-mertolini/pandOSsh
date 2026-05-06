@@ -24,10 +24,6 @@ void exitAtomicSession() {
 void releaseFramesOfProcess(int asid) {
     for (int i = 0; i < POOLSIZE; i++) {
         if (swapPoolTable[i].sw_asid == asid) {
-            // INVALIDS LA PAGE TABLE ENTRY PRIMA DI SCOLLEGARLA
-            if (swapPoolTable[i].sw_pte != NULL) {
-                swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON; 
-            }
             swapPoolTable[i].sw_asid = -1;
             swapPoolTable[i].sw_pageNo = -1;
             swapPoolTable[i].sw_pte = NULL;
@@ -37,7 +33,7 @@ void releaseFramesOfProcess(int asid) {
 }
 
 //Restituisce l'indirizzo fisico di un frame della Swap Pool
-static memaddr frameAddressFunction(int frameIdx) {
+memaddr frameAddressFunction(int frameIdx) {
     return (memaddr)(SWAP_POOL_START_ADDR + frameIdx * PAGESIZE);
 }
 
@@ -81,21 +77,27 @@ void updateTLB(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags
 }
 
 void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
-    enterAtomicSession();
+    //print("[UPDATE_TLB] iniziata\n");
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
     pageTable->pte_entryLO = physicalAddr | bitFlags;
     //TODO DOPO DEBUG USARE updateTLB()
     TLBCLR(); //ancora versione debug, poi qui deve venire inserita la versione potente
-    exitAtomicSession();
 }
 
 //algoritmo Round Robin per la sostituzione delle pagine
 void pageReplacementAlgorithm(int *i) {
+    for (int j = 0; j < POOLSIZE; j++) {
+        if (swapPoolTable[j].sw_asid == -1) {
+            *i = j;
+            return; // Frame vuoto trovato! Usciamo senza toccare currentFrame
+        }
+    }
     *i = currentFrame;
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
 //vpn = p = page number e frameNumber = i
 int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
+    //print("[READ_WRITE] iniziata\n");
     memaddr frameAddress = frameAddressFunction(frameNumber);
     //Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
     int devNo = asid - 1;
@@ -112,12 +114,16 @@ int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
     unsigned int cmd = (vpn << 8) | command;
     unsigned int status = SYSCALL(DOIO, (int)&devReg->command, cmd, 0);
 
+    //print("[DOIO] effettuata\n");
+
     //Rilascia il semaforo del device
     SYSCALL(VERHOGEN, (int)&flashSem[devNo], 0, 0);
 
+    //print("[V] effettuata\n");
     if((status & 0xFF) == 1) {
         return OK; //operazione effettuata con successo
     } else {
+        //print("[PROBLEMI]\n");
         return -1;
     }
 }
@@ -131,10 +137,12 @@ void pager() {
 
     //TODO capire se la maschera applicata è corretta - cosa da debug
     //ricaviamo il codice di eccezione
-    unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    //unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    unsigned int excCode = CAUSE_EXCCODE(cause);
 
     //TLBINVLDL := Load - TLBINVLDs := Store
-    if (excCode == 6 || excCode == 7) {
+    if (excCode >= 24 && excCode <= 28) {
+        //print("[CODICI] Rilevati Codici 6 o 7\n");
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0,0);
 
         /* 1. Estraiamo il VPN puro azzerando i 12 bit bassi */
@@ -201,8 +209,10 @@ void pager() {
         swapPoolTable[i].sw_pte = &(support -> sup_privatePgTbl[p]);
 
         //11 + 12
+        enterAtomicSession();
         unsigned int physicalAddr = (SWAP_POOL_START_ADDR + (i * PAGESIZE));
         updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
+        exitAtomicSession();
 
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
         LDST(exceptionState);
