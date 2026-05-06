@@ -1,7 +1,5 @@
 #include "./headers/vmSupport.h"
-
-// debug
-#include "print.h"
+#include <uriscv/arch.h>
 
 //TODO controllare se 'swapPoolTable' e 'swapPoolSemaphore' devono essere static o no
 //TODO capire se sono estetiche le variabili qui
@@ -32,12 +30,15 @@ void releaseFramesOfProcess(int asid) {
     TLBCLR();
 }
 
-//Restituisce l'indirizzo fisico di un frame della Swap Pool
+// Restituisce l'indirizzo fisico di un frame della Swap Pool
 memaddr frameAddressFunction(int frameIdx) {
     return (memaddr)(SWAP_POOL_START_ADDR + frameIdx * PAGESIZE);
 }
 
 void initSwapStructures() {
+    // qui l'atomic session e' superflua perche' viene chiamata dal processo test
+    // quando e' l'unico processo presente (si puo' mettere comunque, non fa danno)
+
     //semaforo pronto per accettare una P
     swapPoolSemaphore = 1;
     for (int i = 0; i < POOLSIZE; i++) {
@@ -47,41 +48,40 @@ void initSwapStructures() {
     }
 }
 
+// * va chiamato in atomic session
 /*
   @param bitFlags: puo' essere VALIDON | DIRTYON | GLOBALON
   @param physicalAddr: indirizzo fisico del frame deve essere gia' nel formato
   corretto per pte_entryLO, cioe' PFN << PFNSHIFT
   @return: aggiorna la pagetable e il tlb con la pagina e i flag passati
 */
-void updateTLB(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
-    enterAtomicSession();
-
+void updateTLB(pteEntry_t *pageTable) {
     // * 2 - poi aggiorniamo il TLB
-    // unsigned int oldEntryHi = getENTRYHI();
-    // setENTRYHI(pageTable->pte_entryHI);
+    // unsigned int oldEntryHi = getENTRYHI(); // processo che ha causato il page fault
+    // setENTRYHI(pageTable->pte_entryHI); // pagina vittima passata come parametro
 
     // ricerca nel TLB
     // TLBP();
     // if(getINDEX() >= 0) {
     //   // Se c'è, aggiorna subito il registro fisico con il nuovo EntryLo (V, D, G e PFN)
-    //   setENTRYLO(s->sup_privatePgTbl[pageNo].pte_entryLO);
+    //   setENTRYLO(pageTable->pte_entryLO);
     //   TLBWI();
     // }
 
-    // ripristino
+    // ripristino del processo corrente
     // setENTRYHI(oldEntryHi);
 
-    //TODO: sostituire la riga seguente con il frammento di codice precedente
+    //TODO: dopo debug sostituire la riga seguente con il frammento di codice precedente
     TLBCLR();
-    exitAtomicSession();
 }
 
+// update PageTable Entry
+// * physicalAddr deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
 void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
     //print("[UPDATE_TLB] iniziata\n");
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
     pageTable->pte_entryLO = physicalAddr | bitFlags;
-    //TODO DOPO DEBUG USARE updateTLB()
-    TLBCLR(); //ancora versione debug, poi qui deve venire inserita la versione potente
+    updateTLB(pageTable); 
 }
 
 //algoritmo Round Robin per la sostituzione delle pagine
@@ -92,34 +92,38 @@ void pageReplacementAlgorithm(int *i) {
             return; // Frame vuoto trovato! Usciamo senza toccare currentFrame
         }
     }
+    // tutti i frame erano occupati
     *i = currentFrame;
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
-//vpn = p = page number e frameNumber = i
-int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
-    //print("[READ_WRITE] iniziata\n");
-    memaddr frameAddress = frameAddressFunction(frameNumber);
-    //Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
+
+/*
+    Commento per Gabbo: ho cambiato vpn in pageNo perche' si trattano effettivamente di due cose diverse
+    vpn e' un numero del tipo 0x80000...0xbffff mentre qua vogliamo un pageNo ovvero un numero tipo 0...31
+*/
+//p = page number e frameNumber = i
+int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
+    unsigned int frameAddress = frameAddressFunction(frameNumber);
+    // Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
     int devNo = asid - 1;
-    //Indirizzo base del device register del flash
+    // Indirizzo base del device register del flash
     dtpreg_t *devReg = (dtpreg_t *)DEV_REG_ADDR(IL_FLASH, devNo);
 
-    //Acquisisce il semaforo di mutua esclusione sul device
+    // Acquisisce il semaforo di mutua esclusione sul device
     SYSCALL(PASSEREN, (int)&flashSem[devNo], 0, 0);
-    //Passo 1: scrive DATA0 con l'indirizzo fisico del frame
+    // Passo 1: scrive DATA0 con l'indirizzo fisico del frame
     devReg->data0 = frameAddress;
 
-    //Passo 2: avvia l'operazione tramite NSYS5 (DoIO)
-    //Il campo COMMAND contiene: blocco (byte alti) | comando (byte basso)
-    unsigned int cmd = (vpn << 8) | command;
-    unsigned int status = SYSCALL(DOIO, (int)&devReg->command, cmd, 0);
+    // Passo 2: avvia l'operazione tramite NSYS5 (DoIO)
+    // Il campo COMMAND contiene: blocco (byte alti) | comando (byte basso)
 
-    //print("[DOIO] effettuata\n");
+    // ! Sembra corretto ma teniamolo d'occhio
+    unsigned int cmd = (pageNo << 8) | command;
+    unsigned int status = SYSCALL(DOIO, (int)&devReg->command, cmd, 0);
 
     //Rilascia il semaforo del device
     SYSCALL(VERHOGEN, (int)&flashSem[devNo], 0, 0);
 
-    //print("[V] effettuata\n");
     if((status & 0xFF) == 1) {
         return OK; //operazione effettuata con successo
     } else {
@@ -128,9 +132,9 @@ int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command) {
     }
 }
 
-//sezione 4.2 delle specifiche
+// page fault handler -> sezione 4.2 delle specifiche
 void pager() {
-    //otteniamo il puntatore alla support structure del processo
+    // otteniamo il puntatore alla support structure del processo
     support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0,0,0);
     state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
@@ -142,22 +146,20 @@ void pager() {
 
     //TLBINVLDL := Load - TLBINVLDs := Store
     if (excCode >= 24 && excCode <= 28) {
-        //print("[CODICI] Rilevati Codici 6 o 7\n");
+        // Mutua esclusione sul semaforo della swapPool
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0,0);
 
         /* 1. Estraiamo il VPN puro azzerando i 12 bit bassi */
-        unsigned int missing_vpn = (exceptionState->entry_hi & 0xFFFFF000) >> VPNSHIFT;
+        unsigned int missing_vpn = (exceptionState->entry_hi & VPN_MASK) >> VPNSHIFT; // -> otteniamo qualcosa del tipo 0x80000...0xBFFFF
 
         /* 2. Traduciamo il VPN nell'indice logico 'p' (da 0 a 31) */
         int p;
-        if (missing_vpn == 0xBFFFF) {
-            p = 31; // È lo stack!
-            // //print("[PAGER] Fault sullo STACK (Pagina 31)\n");
+        if (missing_vpn == STACK_PAGE_VPN) {
+            p = 31;
         } else if (missing_vpn >= 0x80000 && missing_vpn <= 0x8001E) { 
-            p = missing_vpn - 0x80000; // Pagine di codice (0-30)
+            p = (int)(missing_vpn - 0x80000); // Pagine di codice (0-30)
         } else {
-            // ERRORE FATALE DELLA SHELL: Segmentation Fault!
-            print("\n[PAGER] FATAL: Segment Fault! La Shell ha letto memoria illegale.\n");
+            // ERRORE: Segmentation Fault!
             // Dobbiamo rilasciare il semaforo prima di ucciderla!
             SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
             programTrapSupportHandler(support);
@@ -175,20 +177,21 @@ void pager() {
             int oldProcAsid = swapPoolTable[i].sw_asid;
             int oldProcVpn = swapPoolTable[i].sw_pageNo; //la pagina che verrà sostituita da "p"
             pteEntry_t *oldProcPte = swapPoolTable[i].sw_pte;
+            
             enterAtomicSession();
+
             oldProcPte->pte_entryLO &= ~VALIDON; //marchiamo il bit del frame contenuto nella page table come invalido 8a)
 
-            //TODO DOPO DEBUG USARE updateTLB()
             //versione DEBUG, facciamo un ripulisti della TLB, questa parte di codice dovrà essere raffinata cercando la pagina
             //invece di ripulire, dobbiamo chiedere se la pagina è in TLB e ne caso rimuoverla perché "out of date"
-            TLBCLR(); //8b)
+            updateTLB(oldProcPte); //8b)
 
             exitAtomicSession();
 
             //8c)
             int writeStatus = readOrWriteToFlash(oldProcAsid, oldProcVpn, i, FLASHWRITE);
-            //int writeStatus = writeToFlash(oldProcAsid, oldProcVpn, i);
             if (writeStatus != OK) {
+                SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0); // RILASCIA IL SEMAFORO!
                 programTrapSupportHandler(support);
                 return;
             }
@@ -197,6 +200,7 @@ void pager() {
         //9
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
         if (readStatus != OK) {
+            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0); // RILASCIA IL SEMAFORO!
             programTrapSupportHandler(support);
             return;
         }
@@ -210,14 +214,14 @@ void pager() {
 
         //11 + 12
         enterAtomicSession();
-        unsigned int physicalAddr = (SWAP_POOL_START_ADDR + (i * PAGESIZE));
+        unsigned int physicalAddr = frameAddressFunction(i);
         updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
         exitAtomicSession();
 
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
         LDST(exceptionState);
     }
-    else {
+    else { // TLB-Modification exception
         programTrapSupportHandler(support);
         return;
     }

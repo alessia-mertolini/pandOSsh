@@ -12,7 +12,6 @@
 #include "./headers/sysSupport.h"
 #include "./headers/costantiNopoli.h"
 #include "./testers/h/tconst.h"
-#include "print.h"
 #include "./headers/vmSupport.h"
 
 // debug
@@ -371,7 +370,6 @@ void generalExceptionHandler(void) {
         syscallExceptionHandler(sup);
     } else {
         /* Program Trap (Sezione 8) -> Grazia. */
-        print("\n[PROGRAM TRAP]\n");
         programTrapSupportHandler(sup);
     }
 

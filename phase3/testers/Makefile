@@ -4,7 +4,7 @@ LD = $(XT_PRG_PREFIX)ld
 
 URISCV_DIR_PREFIX  = /usr/local
 URISCV_DATA_DIR    = $(URISCV_DIR_PREFIX)/share/uriscv
-URISCV_INCLUDE_DIR = $(URISCV_DIR_PREFIX)/include
+URISCV_INCLUDE_DIR = /usr/include
 URISCV_LIB_DIR     = $(URISCV_DIR_PREFIX)/lib/uriscv
 
 CFLAGS_LANG = -ffreestanding -static -c -nostdlib

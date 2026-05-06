@@ -4,6 +4,17 @@
 // inizializzare: SWAP POOL TABLE, SEMAPHORE POOL TABLE -> lo fa chimando initSwapStructs
 // oltre a fare anche altre cose
 
+/*
+    // * REVISIONE CODICE SECONDO SPECIFICHE
+    - Sezione 3 corretta
+    - Sezione 4.1 corretta
+    - Sezione 4.2 corretta
+    - Sezione 5.1 corretta ma teniamo d'occhio cmd
+    - Sezione 5.2 corretta (solo TLBCLR al momento)
+    - Sezione 5.3 corretta
+    - Sezione 5.4 corretta
+*/
+
 #include "../headers/const.h"
 #include "../headers/types.h"
 #include <uriscv/liburiscv.h>
@@ -33,7 +44,7 @@ static support_t *allocSupportStruct(int asid);
 
 
 // --- debug
-extern void print(char *msg);
+#include "print.h"
 
 void test() {
     initSwapStructures();
@@ -66,6 +77,13 @@ void test() {
  * ----------------------------------------------------------------------- */
 void launchUProc(int asid) {
     state_t     uprocState;
+
+    // AZZERAMENTO MANUALE PER RISOLVERE LA SPAZZATURA:
+    char *ptr = (char *)&uprocState;
+    for (int i = 0; i < sizeof(state_t); i++) {
+        ptr[i] = 0;
+    }
+    
     support_t  *sup = allocSupportStruct(asid);
 
     /* ── Stato iniziale del U-proc ──────────────────────────────────────── */
