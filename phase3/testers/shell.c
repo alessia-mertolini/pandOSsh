@@ -91,10 +91,21 @@ int main() {
 
         /* Ricerca nella mappa statica */
         found = 0;
+        // print(WRITETERMINAL,"Ricerco comando: ");
+        // print(WRITETERMINAL, input_buf);
+        // print(WRITETERMINAL,"\n");
+
         for (i = 0; i < MAX_PROGS; i++) {
             if (str_cmp(input_buf, tests[i].name)) {
                 found = 1;
 
+                // char num_str[2];
+                // num_str[0] = tests[i].asid + '0'; // Trasforma il numero intero 2 nel carattere '2'
+                // num_str[1] = '\0';    // Terminatore di stringa
+
+                // print(WRITETERMINAL, "Flash drive numero: ");
+                // print(WRITETERMINAL,num_str);
+                // print(WRITETERMINAL,"\n");
                 /* SYS6: Execute - crea il processo figlio e attende */
                 SYSCALL(EXECUTE, tests[i].asid, 0, 0);
 

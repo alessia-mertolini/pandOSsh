@@ -42,7 +42,7 @@ memaddr frameAddressFunction(int frameIdx);
 void initSwapStructures();
 
 //semplice algoritmo Round Robin per la sostituzione delle pagine
-void pageReplacementAlgorithm(int *i);
+void pageReplacementAlgorithm(int *frameOut, int currentAsid);
 
 //funzione che permette di entrare in sessione atomica
 void enterAtomicSession();
