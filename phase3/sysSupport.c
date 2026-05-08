@@ -42,7 +42,7 @@ static int isShellProcess(support_t *sup) {
  *   poi NSYS2 per terminare il processo.
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
-    print("\n[DEBUG] PROGRAM TRAP CHIAMATO! Morte del processo.\n");
+    //print("\n[DEBUG] PROGRAM TRAP CHIAMATO! Morte del processo.\n");
 
     // FIX FONDAMENTALE: Puliamo i frame fantasma prima di morire!
     SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
@@ -151,18 +151,18 @@ int receiveChar(int devNo) {
  */
 static void sys2Terminate(support_t *sup) {
     // * il seguente codice e' ottimizzazione post codice funzionante
-    print("[DEBUG-SYS2] Inizio sys2Terminate per ASID: ");
+    //print("[DEBUG-SYS2] Inizio sys2Terminate per ASID: ");
     char buf[2];
     buf[0] = sup->sup_asid + '0';
     buf[1] = '\0';
-    print(buf);
-    print("\n");
+    //print(buf);
+    //print("\n");
 
     SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
     releaseFramesOfProcess(sup->sup_asid);
     SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
 
-    print("[DEBUG-SYS2] Frames rilasciati! Faccio la V sul semaforo.\n");
+    //print("[DEBUG-SYS2] Frames rilasciati! Faccio la V sul semaforo.\n");
 
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
@@ -170,7 +170,7 @@ static void sys2Terminate(support_t *sup) {
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
 
-    print("[DEBUG-SYS2] V completata! Chiamo TERMPROCESS (NSYS2).\n");
+    //print("[DEBUG-SYS2] V completata! Chiamo TERMPROCESS (NSYS2).\n");
 
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
@@ -220,7 +220,7 @@ static void sys4WriteTerminal(support_t *sup) {
     int transmitted = 0;
     int i;
 
-    print("[DEBUG] SYS4 Iniziata. Trasmetto...\n");
+    //print("[DEBUG] SYS4 Iniziata. Trasmetto...\n");
 
     for (i = 0; i < len; i++) {
         // PUNTO CRITICO 1: Potrebbe scatenare un Page Fault!
@@ -238,7 +238,7 @@ static void sys4WriteTerminal(support_t *sup) {
         }
         transmitted++;
     }
-    print("[DEBUG] SYS4 Finita!\n");
+    //print("[DEBUG] SYS4 Finita!\n");
     /* Successo. */
     savedState->reg_a0 = (unsigned int)transmitted;
     savedState->pc_epc += WORDLEN;

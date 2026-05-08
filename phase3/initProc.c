@@ -73,7 +73,7 @@ void test() {
 
     SYSCALL(PASSEREN, (int)&masterSemaphore,0,0);
 
-    print("\n\nse mi vedi sei fritto!!\n\n");
+    //print("\n\nse mi vedi sei fritto!!\n\n");
 
     SYSCALL(TERMPROCESS,0,0,0);
 }
@@ -87,10 +87,10 @@ void launchUProc(int asid) {
     state_t uprocState;
 
     // AZZERAMENTO MANUALE PER RISOLVERE LA SPAZZATURA:
-    // char *ptr = (char *)&uprocState;
-    // for (int i = 0; i < sizeof(state_t); i++) {
-    //     ptr[i] = 0;
-    // }
+    char *ptr = (char *)&uprocState;
+    for (int i = 0; i < sizeof(state_t); i++) {
+        ptr[i] = 0;
+    }
     
     support_t  *sup = allocSupportStruct(asid);
 

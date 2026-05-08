@@ -25,16 +25,16 @@ void releaseFramesOfProcess(int asid) {
     enterAtomicSession();
     for (int i = 0; i < POOLSIZE; i++) {
         if (swapPoolTable[i].sw_asid == asid) {
-            print("[RELEASE] frame=");
+            //print("[RELEASE] frame=");
             char buf[2];
             buf[0] = i + '0';
             buf[1] = '\0';
-            print(buf);
-            print(" asid=");
+            //print(buf);
+            //print(" asid=");
             buf[0] = swapPoolTable[i].sw_asid + '0';
             buf[1] = '\0';
-            print(buf);
-            print("\n");
+            //print(buf);
+            //print("\n");
             if (swapPoolTable[i].sw_pte != NULL) {
                 swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON;
             }
@@ -92,7 +92,7 @@ void updateTLB(pteEntry_t *pageTable) {
 // update PageTable Entry
 // * physicalAddr deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
 void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
-    //print("[UPDATE_TLB] iniziata\n");
+    ////print("[UPDATE_TLB] iniziata\n");
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
     pageTable->pte_entryLO = physicalAddr | bitFlags;
     updateTLB(pageTable); 
@@ -153,7 +153,7 @@ int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
     if((status & 0xFF) == 1) {
         return OK; //operazione effettuata con successo
     } else {
-        print("[PROBLEMI]\n");
+        ////print("[PROBLEMI]\n");
         return -1;
     }
 }
@@ -171,9 +171,9 @@ void pager() {
     char buf[2];
     buf[0] = support->sup_asid + '0';
     buf[1] = '\0';
-    print("\n[CRITICAL-PAGER] Pager invocato da ASID=");
-    print(buf);
-    print("\n[CRITICAL-PAGER] Indirizzo istruzione (PC) che ha causato il fault = 0x");
+    //print("\n[CRITICAL-PAGER] Pager invocato da ASID=");
+    //print(buf);
+    //print("\n[CRITICAL-PAGER] Indirizzo istruzione (PC) che ha causato il fault = 0x");
     // ... stampa fault_pc in esadecimale (puoi usare la stessa logica che hai usato per pte_entryLO) ...
     char buf3[12];
     // stampa in esadecimale manuale
@@ -183,8 +183,8 @@ void pager() {
     }
     buf3[8] = '\n';
     buf3[9] = '\0';
-    print(buf3);
-    print("\n");
+    //print(buf3);
+    //print("\n");
 
     //TODO capire se la maschera applicata è corretta - cosa da debug
     //ricaviamo il codice di eccezione
@@ -218,17 +218,17 @@ void pager() {
         pageReplacementAlgorithm(&i, support->sup_asid);
 
         // dopo aver calcolato p
-        print("[DEBUG] Pager: pageNo=");
+        //print("[DEBUG] Pager: pageNo=");
         char buf[3];
         buf[0] = '0' + p / 10;
         buf[1] = '0' + p % 10;
         buf[2] = '\0';
-        print(buf);
-        print(" frame=");
+        //print(buf);
+        //print(" frame=");
         buf[0] = '0' + i / 10;
         buf[1] = '0' + i % 10;
-        print(buf);
-        print("\n");
+        //print(buf);
+        //print("\n");
 
         //punto sette - determiniamo se il frame i-esimo è occupato
         if(swapPoolTable[i].sw_asid != -1) {
@@ -258,14 +258,14 @@ void pager() {
         }
 
         //9
-        print("[DEBUG] Pager: Leggo dal Flash Device: ");
+        //print("[DEBUG] Pager: Leggo dal Flash Device: ");
         char devNo[2];
         devNo[0] = (support->sup_asid - 1) + '0';
         devNo[1] = '\0';
-        print(devNo);
-        print("\n");
+        //print(devNo);
+        //print("\n");
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
-        print("[DEBUG] Pager: Flash Device letto con successo!\n");
+        //print("[DEBUG] Pager: Flash Device letto con successo!\n");
         if (readStatus != OK) {
             SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0); // RILASCIA IL SEMAFORO!
             programTrapSupportHandler(support);
@@ -293,13 +293,11 @@ void pager() {
         }
         buf3[8] = '\n';
         buf3[9] = '\0';
-        print("[PTE] pte_entryLO=0x");
-        print(buf3);
+        //print("[PTE] pte_entryLO=0x");
+        //print(buf3);
 
+        //13
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
-
-        // ?
-        // TLBCLR();
 
         LDST(exceptionState);
     }
