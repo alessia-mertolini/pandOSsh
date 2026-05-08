@@ -35,7 +35,7 @@
             "file": "phase3/testers/sl.uriscv"
         },
         "flash7": {
-            "enabled": false,
+            "enabled": true,
             "file": "phase3/testers/calc.uriscv"
         },
         "terminal0": {
