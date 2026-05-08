@@ -12,7 +12,6 @@
 #define TERM_CHAR_MASK      0x0000FF00  /* estrae il carattere */
 #define TERM_CHAR_SHIFT     8           /* shift per estrarre il carattere  */
 
-
-
+#define TERM0ADDR 0x10000254
 
 #endif

@@ -29,13 +29,13 @@ typedef struct {
 } prog_entry_t;
 
 static prog_entry_t tests[MAX_PROGS] = {
-    { "fibEight", 1 },
-    { "echo", 2 },
-    { "fibEleven", 3 },
-    { "uname", 4 },
-    { "date", 5 },
-    { "sl", 6 },
-    { "calc", 7 },
+    { "fibEight", 2 },
+    { "echo", 3 },
+    { "fibEleven", 4 },
+    { "uname", 5 },
+    { "date", 6 },
+    { "sl", 7 },
+    { "calc", 8 },
 };
 
 /* --------------------------------------------------------------------------
@@ -64,7 +64,7 @@ int main() {
     char input_buf[128];
     int  nread, i, found;
 
-    print(WRITETERMINAL, "PandOSsh shell ready. Type a program name or 'exit'.\n");
+    print(WRITETERMINAL, "[OK] PandOSsh shell ready. Type a program name or 'exit'.\n");
 
     while (1) {
         /* Prompt */
@@ -91,10 +91,21 @@ int main() {
 
         /* Ricerca nella mappa statica */
         found = 0;
+        // print(WRITETERMINAL,"Ricerco comando: ");
+        // print(WRITETERMINAL, input_buf);
+        // print(WRITETERMINAL,"\n");
+
         for (i = 0; i < MAX_PROGS; i++) {
             if (str_cmp(input_buf, tests[i].name)) {
                 found = 1;
 
+                // char num_str[2];
+                // num_str[0] = tests[i].asid + '0'; // Trasforma il numero intero 2 nel carattere '2'
+                // num_str[1] = '\0';    // Terminatore di stringa
+
+                // print(WRITETERMINAL, "Flash drive numero: ");
+                // print(WRITETERMINAL,num_str);
+                // print(WRITETERMINAL,"\n");
                 /* SYS6: Execute - crea il processo figlio e attende */
                 SYSCALL(EXECUTE, tests[i].asid, 0, 0);
 

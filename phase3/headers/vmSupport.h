@@ -16,7 +16,12 @@
 //utilizzato nel 'pager'
 #define SWAP_POOL_START_ADDR (0x20000000 + (32 * PAGESIZE))
 
+//Array dei semafori dei device - 8 flash device
+extern int flashSem[DEVPERINT];
+
 //TODO guardare se alcune di queste funzioni devono andare "static"
+
+void releaseFramesOfProcess(int asid);
 
 void initPageTable(support_t *s);
 
@@ -29,7 +34,7 @@ void initPageTable(support_t *s);
 void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags);
 
 //Restituisce l'indirizzo fisico di un frame della Swap Pool
-static memaddr frameAddressFunction(int frameIdx);
+memaddr frameAddressFunction(int frameIdx);
 
 //Funzione di inizializzazione delle strutture dati necessarie alla swap pool
 //'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'
@@ -37,7 +42,7 @@ static memaddr frameAddressFunction(int frameIdx);
 void initSwapStructures();
 
 //semplice algoritmo Round Robin per la sostituzione delle pagine
-void pageReplacementAlgorithm(int *i);
+void pageReplacementAlgorithm(int *frameOut, int currentAsid);
 
 //funzione che permette di entrare in sessione atomica
 void enterAtomicSession();
@@ -76,5 +81,7 @@ int readOrWriteToFlash(int asid, int vpn, int frameNumber, int command);
  * un algoritmo di rimpiazzamento RR
  */
 void pager();
+
+void releaseFramesOfProcess(int asid);
 
 #endif

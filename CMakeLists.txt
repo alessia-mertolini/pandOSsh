@@ -3,7 +3,7 @@ project(MultiPandOS LANGUAGES C ASM)
 
 set(XT_PRG_PREFIX riscv64-unknown-elf-)
 set(URISCV_SRC /usr/local/share/uriscv)
-set(URISCV_INC /usr/local/include)
+set(URISCV_INC /usr/include)
 
 set(CMAKE_C_COMPILER ${XT_PRG_PREFIX}gcc)
 set(CMAKE_ASM_COMPILER ${XT_PRG_PREFIX}gcc)
@@ -18,6 +18,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/headers
     ${CMAKE_SOURCE_DIR}/phase1/headers
     ${CMAKE_SOURCE_DIR}/phase2/headers
+    ${CMAKE_SOURCE_DIR}/phase3/headers
     ${CMAKE_SOURCE_DIR}/phase3/headers
 )
 

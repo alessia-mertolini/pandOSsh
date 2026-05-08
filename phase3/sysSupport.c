@@ -6,12 +6,16 @@
  *   - Program Trap handler (Sezione 8)  -> vmSupport.c
  *   - Pager / swap pool                 -> vmSupport.c
  *   - TLB-Refill handler                -> exceptions.c
- *   - spawnUProc / initProc             -> initProc.c
+ *   - launchUProc / initProc             -> initProc.c
  */
 
 #include "./headers/sysSupport.h"
 #include "./headers/costantiNopoli.h"
 #include "./testers/h/tconst.h"
+#include "./headers/vmSupport.h"
+
+// debug
+#include "print.h"
 
 /* -----------------------------------------------------------------------
  * Simboli esterni forniti dagli altri moduli
@@ -21,9 +25,13 @@
 /* initProc.c */
 extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shell alla fine */
 extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
-extern void spawnUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
+extern void launchUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
+extern int swapPoolSemaphore;
 
-
+//Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
+static int isShellProcess(support_t *sup) {
+    return (sup->sup_asid == SHELL_ASID);
+}
 
 /* =========================================================================
  * programTrapSupportHandler  [Section 8]
@@ -34,24 +42,28 @@ extern void spawnUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
  *   poi NSYS2 per terminare il processo.
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
-    (void)sup;  /* non usato direttamente, ma utile per future estensioni */
+    //print("\n[DEBUG] PROGRAM TRAP CHIAMATO! Morte del processo.\n");
+
+    // FIX FONDAMENTALE: Puliamo i frame fantasma prima di morire!
+    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+    releaseFramesOfProcess(sup->sup_asid);
+    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
 
     /* V sul masterSemaphore (se il processo è la shell) oppure
        sul shellSemaphore (se è un programma figlio della shell).
        La logica corretta dipende dall'architettura shell/initProc;
        qui si esegue la V generica sul masterSemaphore [Section 9].
        In un'implementazione completa: distinguere shell da child.  */
-    SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
+    if(isShellProcess(sup)) {
+        SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
+    } else {
+        SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
+    }
 
     /* Termina il processo tramite NSYS2 */
     SYSCALL(TERMPROCESS, 0, 0, 0);
 
     /* UNREACHABLE – NSYS2 non ritorna mai*/
-}
-
-//Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
-static int isShellProcess(support_t *sup) {
-    return (sup->sup_asid == SHELL_ASID);
 }
 
 /* -----------------------------------------------------------------------
@@ -74,11 +86,25 @@ static int isShellProcess(support_t *sup) {
  * Restituisce la status word: byte basso = stato, byte 1 = carattere eco.
  */
 int transmitChar(int devNo, char c) {
-    termreg_t *termReg = TERM_REG_ADDR(devNo);
+    // * modifica di debug
+    // termreg_t *termReg = TERM_REG_ADDR(devNo);
+
+    // /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
+    // unsigned int command =
+    //     ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
+
+    // return SYSCALL(DOIO, (int)&(termReg->transm_command), (int)command, 0);
+
+    unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
+    termreg_t *termReg = (termreg_t *)baseAddr;
 
     /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
-    unsigned int command =
-        ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
+    /*
+        Esempio: c -> 97 -> 0x61 -> 0x00000061
+        Shift: 0x00006100
+        Or: 0x00006102    
+    */
+    unsigned int command = ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
 
     return SYSCALL(DOIO, (int)&(termReg->transm_command), (int)command, 0);
 }
@@ -93,7 +119,14 @@ int transmitChar(int devNo, char c) {
  * Restituisce la status word: byte basso = stato, byte 1 = carattere ricevuto.
  */
 int receiveChar(int devNo) {
-    termreg_t *termReg = TERM_REG_ADDR(devNo);
+    // * modifica di debug
+    // termreg_t *termReg = TERM_REG_ADDR(devNo);
+
+    // return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
+
+    /* Stesso fix della transmitChar per la lettura da tastiera */
+    unsigned int baseAddr = 0x10000254 + (devNo * 0x10);
+    termreg_t *termReg = (termreg_t *)baseAddr;
 
     return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
 }
@@ -117,11 +150,28 @@ int receiveChar(int devNo) {
  * Non ritorna mai.
  */
 static void sys2Terminate(support_t *sup) {
-    if (isShellProcess(sup)) {
+    // * il seguente codice e' ottimizzazione post codice funzionante
+    //print("[DEBUG-SYS2] Inizio sys2Terminate per ASID: ");
+    char buf[2];
+    buf[0] = sup->sup_asid + '0';
+    buf[1] = '\0';
+    //print(buf);
+    //print("\n");
+
+    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+    releaseFramesOfProcess(sup->sup_asid);
+    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+
+    //print("[DEBUG-SYS2] Frames rilasciati! Faccio la V sul semaforo.\n");
+
+    if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
-    } else {
+    } else { // user process was started by shell
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
+
+    //print("[DEBUG-SYS2] V completata! Chiamo TERMPROCESS (NSYS2).\n");
+
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
@@ -145,9 +195,9 @@ static void sys2Terminate(support_t *sup) {
  *   errore I/O:  a0 = -(status word del device)
  */
 static void sys4WriteTerminal(support_t *sup) {
-    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
-    char    *virtAddr   = (char *)savedState->reg_a1;
-    int      len        = (int)  savedState->reg_a2;
+    state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
+    unsigned int virtAddr   = savedState->reg_a1; // primo carattere trasmesso
+    int len = (int) savedState->reg_a2;
 
     /* Il terminale della shell è il numero 0. */
     int devNo = SHELL_TERMINAL;
@@ -159,17 +209,24 @@ static void sys4WriteTerminal(support_t *sup) {
     }
 
     /* Validazione indirizzo: la stringa deve stare interamente in kuseg. */
-    if ((unsigned int)virtAddr < KUSEG ||
-        (unsigned int)virtAddr + (unsigned int)len > USERSTACKTOP) {
+    if (virtAddr < KUSEG || virtAddr + len > USERSTACKTOP) {
         sys2Terminate(sup);
         /* non ritorna */
     }
 
     /* Trasmissione carattere per carattere. */
+    char *str = (char *)virtAddr;
+
     int transmitted = 0;
     int i;
+
+    //print("[DEBUG] SYS4 Iniziata. Trasmetto...\n");
+
     for (i = 0; i < len; i++) {
-        int status = transmitChar(devNo, virtAddr[i]);
+        // PUNTO CRITICO 1: Potrebbe scatenare un Page Fault!
+        char c = str[i]; 
+        
+        int status = transmitChar(devNo, c);
 
         /* Controlla solo il byte di stato. */
         if ((status & TERM_STATUS_MASK) != OKCHARTRANS) {
@@ -181,7 +238,7 @@ static void sys4WriteTerminal(support_t *sup) {
         }
         transmitted++;
     }
-
+    //print("[DEBUG] SYS4 Finita!\n");
     /* Successo. */
     savedState->reg_a0 = (unsigned int)transmitted;
     savedState->pc_epc += WORDLEN;
@@ -214,8 +271,7 @@ static void sys5ReadTerminal(support_t *sup) {
     int devNo = SHELL_TERMINAL;
 
     /* Validazione indirizzo. */
-    if ((unsigned int)virtAddr < KUSEG ||
-        (unsigned int)virtAddr >= USERSTACKTOP) {
+    if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
         sys2Terminate(sup);
         /* non ritorna */
     }
@@ -262,14 +318,14 @@ static void sys5ReadTerminal(support_t *sup) {
  * Solo la shell può chiamare SYS6; altrimenti si tratta come Program Trap.
  *
  * Flusso:
- *   1. spawnUProc(asid): crea il processo tramite NSYS1 (in initProc.c).
+ *   1. launchUProc(asid): crea il processo tramite NSYS1 (in initProc.c).
  *   2. P(shellSemaphore): blocca la shell.
  *   3. Il figlio al termine chiama SYS2 -> V(shellSemaphore): risveglia la shell.
  *   4. Ritorna con a0 = 0, PC += 4.
  */
 static void sys6Execute(support_t *sup) {
     state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
-    int asid = (int)savedState->reg_a1;
+    int requested_asid = (int)savedState->reg_a1;
 
     /* Solo la shell può eseguire SYS6 (Spec Sezione 7.4). */
     if (!isShellProcess(sup)) {
@@ -277,8 +333,10 @@ static void sys6Execute(support_t *sup) {
         /* non ritorna */
     }
 
+    int safe_asid = 2 + ((requested_asid - 2) % (UPROCMAX - 1));
+
     /* Crea e lancia l'U-proc (initProc.c). */
-    spawnUProc(asid);
+    launchUProc(safe_asid);
 
     /* Blocca la shell fino alla terminazione del figlio. */
     SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
@@ -325,7 +383,9 @@ void generalExceptionHandler(void) {
      * GETEXECCODE (0x0000007C) maschera i bit 2-6; poi shift di CAUSESHIFT(2)
      * per ottenere il valore numerico del codice. */
     unsigned int cause   = sup->sup_exceptState[GENERALEXCEPT].cause;
-    unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    // unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    // unsigned int excCode = cause & 0xFF;
+    unsigned int excCode = CAUSE_EXCCODE(cause);
 
     if (excCode == SYSEXCEPTION) {
         /* SYSCALL con a0 > 0 (Sezione 7). */
@@ -344,7 +404,7 @@ void generalExceptionHandler(void) {
 
 
 void syscallExceptionHandler(support_t *sup) {
-    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
+    state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
     int sysNum = (int)savedState->reg_a0;
 
     switch (sysNum) {
