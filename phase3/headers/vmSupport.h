@@ -14,7 +14,7 @@
 #include <uriscv/arch.h>
 
 //utilizzato nel 'pager'
-#define SWAP_POOL_START_ADDR (0x20000000 + (32 * PAGESIZE))
+#define SWAP_POOL_START_ADDR (0x20000000 + (32 * PAGESIZE)) 
 
 //Array dei semafori dei device - 8 flash device
 extern int flashSem[DEVPERINT];

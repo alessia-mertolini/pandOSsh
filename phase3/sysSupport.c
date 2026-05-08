@@ -15,7 +15,7 @@
 #include "./headers/vmSupport.h"
 
 // debug
-#include "print.h"
+// #include "print.h"
 
 /* -----------------------------------------------------------------------
  * Simboli esterni forniti dagli altri moduli
@@ -27,6 +27,9 @@ extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shel
 extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
 extern void launchUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
 extern int swapPoolSemaphore;
+
+extern int writeTerminalSemaphore;
+extern int readTerminalSemaphore;
 
 //Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
 static int isShellProcess(support_t *sup) {
@@ -116,6 +119,8 @@ int transmitChar(int devNo, char c) {
  * Restituisce la status word: byte basso = stato, byte 1 = carattere ricevuto.
  */
 int receiveChar(int devNo) {
+    // termreg_t *termReg = TERM_REG_ADDR(devNo);
+
     unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
     termreg_t *termReg = (termreg_t *)baseAddr;
 
@@ -140,20 +145,21 @@ int receiveChar(int devNo) {
  *
  * Non ritorna mai.
  */
-static void sys2Terminate(support_t *sup) {
-    // * il seguente codice e' ottimizzazione post codice funzionante
-    //print("[DEBUG-SYS2] Inizio sys2Terminate per ASID: ");
-    char buf[2];
-    buf[0] = sup->sup_asid + '0';
-    buf[1] = '\0';
-    //print(buf);
-    //print("\n");
+static void sys2Terminate(support_t *sup, int holdingMutex) {
+     if (holdingMutex) {
+        /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
+        releaseFramesOfProcess(sup->sup_asid);
+        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+    } else {
+        /* Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi V. */
+        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+        releaseFramesOfProcess(sup->sup_asid);
+        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+    }
 
     SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
     releaseFramesOfProcess(sup->sup_asid);
     SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
-
-    //print("[DEBUG-SYS2] Frames rilasciati! Faccio la V sul semaforo.\n");
 
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
@@ -161,7 +167,8 @@ static void sys2Terminate(support_t *sup) {
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
 
-    //print("[DEBUG-SYS2] V completata! Chiamo TERMPROCESS (NSYS2).\n");
+    TLBCLR();
+
 
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
@@ -195,13 +202,13 @@ static void sys4WriteTerminal(support_t *sup) {
 
     /* Validazione lunghezza. */
     if (len < 0 || len > MAXSTRLENG) {
-        sys2Terminate(sup);
+        sys2Terminate(sup,!swapPoolSemaphore);
         /* non ritorna */
     }
 
     /* Validazione indirizzo: la stringa deve stare interamente in kuseg. */
     if (virtAddr < KUSEG || virtAddr + len > USERSTACKTOP) {
-        sys2Terminate(sup);
+        sys2Terminate(sup,!swapPoolSemaphore);
         /* non ritorna */
     }
 
@@ -211,8 +218,7 @@ static void sys4WriteTerminal(support_t *sup) {
     int transmitted = 0;
     int i;
 
-    //print("[DEBUG] SYS4 Iniziata. Trasmetto...\n");
-
+    SYSCALL(PASSEREN, (int)&writeTerminalSemaphore, 0, 0);
     for (i = 0; i < len; i++) {
         // PUNTO CRITICO 1: Potrebbe scatenare un Page Fault!
         char c = str[i]; 
@@ -224,12 +230,14 @@ static void sys4WriteTerminal(support_t *sup) {
             /* Errore device: ritorna il negativo dello status word. */
             savedState->reg_a0 = (unsigned int)(-(status));
             savedState->pc_epc += WORDLEN;
+            SYSCALL(VERHOGEN,(int)&writeTerminalSemaphore, 0,0);
             LDST(savedState);
             /* non ritorna */
         }
         transmitted++;
     }
-    //print("[DEBUG] SYS4 Finita!\n");
+    SYSCALL(VERHOGEN, (int)&writeTerminalSemaphore, 0, 0);
+    
     /* Successo. */
     savedState->reg_a0 = (unsigned int)transmitted;
     savedState->pc_epc += WORDLEN;
@@ -263,11 +271,13 @@ static void sys5ReadTerminal(support_t *sup) {
 
     /* Validazione indirizzo. */
     if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
-        sys2Terminate(sup);
+        sys2Terminate(sup,!swapPoolSemaphore);
         /* non ritorna */
     }
 
+    
     int received = 0;
+    SYSCALL(PASSEREN, (int)&readTerminalSemaphore, 0, 0);
     while (1) {
         int  status = receiveChar(devNo);
         int  stCode = status & TERM_STATUS_MASK;
@@ -278,6 +288,7 @@ static void sys5ReadTerminal(support_t *sup) {
              * (CHARRECV == 5 è lo stesso valore in pandos_const.h). */
             savedState->reg_a0 = (unsigned int)(-(status));
             savedState->pc_epc += WORDLEN;
+            SYSCALL(VERHOGEN,(int)&readTerminalSemaphore, 0,0);
             LDST(savedState);
             /* non ritorna */
         }
@@ -290,6 +301,7 @@ static void sys5ReadTerminal(support_t *sup) {
             break;
         }
     }
+    SYSCALL(VERHOGEN, (int)&readTerminalSemaphore, 0, 0);
 
     savedState->reg_a0 = (unsigned int)received;
     savedState->pc_epc += WORDLEN;
@@ -326,6 +338,7 @@ static void sys6Execute(support_t *sup) {
 
     int safe_asid = 2 + ((requested_asid - 2) % (UPROCMAX - 1));
 
+    // print("[SYS6] Chiamo launchUProc...\n");
     /* Crea e lancia l'U-proc (initProc.c). */
     launchUProc(safe_asid);
 
@@ -400,7 +413,7 @@ void syscallExceptionHandler(support_t *sup) {
 
     switch (sysNum) {
         case TERMINATE:
-            sys2Terminate(sup);
+            sys2Terminate(sup,!swapPoolSemaphore);
             break;
         case WRITETERMINAL:
             sys4WriteTerminal(sup);
