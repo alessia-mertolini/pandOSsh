@@ -92,12 +92,18 @@ int main() {
         /* Ricerca nella mappa statica */
         found = 0;
 
-        for(int i = 0; i < 4000; i++) {
+        // Tentativo di rallentare lo spam di chiamate ai programmi
+        for(int i = 0; i < 1000; i++) {
             SYSCALL(EXECUTE, tests[0].asid, 0, 0);
+            // for (int i = 0; i < 500; i++) {;}
             SYSCALL(EXECUTE, tests[2].asid, 0, 0);
+            // for (int i = 0; i < 500; i++) {;}
             SYSCALL(EXECUTE, tests[3].asid, 0, 0);
+            // for (int i = 0; i < 500; i++) {;}
             SYSCALL(EXECUTE, tests[4].asid, 0, 0);
+            // for (int i = 0; i < 500; i++) {;}
             SYSCALL(EXECUTE, tests[5].asid, 0, 0);
+            // for (int i = 0; i < 500; i++) {;}
         }
 
         // for (i = 0; i < MAX_PROGS; i++) {
