@@ -55,13 +55,14 @@ pcb_t *currentProcess;
  */
 int deviceSemaphores[SEMDEVLEN];
 
+extern void uTLB_RefillHandler(void);
+
 // Entry point di pandOSsh
 int main(void) {
     // Inizializzazione del passUpVector per il processore 0
     passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
 
     // Gestore degli eventi TLB da exceptions.c
-    extern void uTLB_RefillHandler(void);
     passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
     passupvector->tlb_refill_stackPtr = KERNELSTACK;
 
@@ -86,7 +87,7 @@ int main(void) {
     }
 
     //Carica l'Interval Timer con 100ms (Pseudo-clock tick)/
-    LDIT(PSECOND); //qui viene settato il time slice che poi viene usato in tutto il SO
+    LDIT(PSECOND * *((unsigned int *) TIMESCALEADDR)); //qui viene settato il time slice che poi viene usato in tutto il SO
 
     //Istanzia il primo processo e lo inserisce nella Ready Queue/
     pcb_t *firstProcess = allocPcb();

@@ -4,10 +4,12 @@ build/
 *.swp
 *.txt
 *.pdf
-*.json
 *.uriscv
 .vscode/
+.claude/
 .idea/
 headers/listx.h
 klog.c
 CMakeLists.txt
+.DS_Store
+run.sh
