@@ -22,29 +22,20 @@ void exitAtomicSession() {
 }
 
 void releaseFramesOfProcess(int asid) {
-    enterAtomicSession();
+    /* Chiamato con swapPoolSemaphore già tenuto dal chiamante.
+     * Non serve atomic session propria: il mutex garantisce l'esclusione
+     * sulla swapPoolTable; TLBCLR è un'istruzione singola. */
     for (int i = 0; i < POOLSIZE; i++) {
         if (swapPoolTable[i].sw_asid == asid) {
-            //print("[RELEASE] frame=");
-            char buf[2];
-            buf[0] = i + '0';
-            buf[1] = '\0';
-            //print(buf);
-            //print(" asid=");
-            buf[0] = swapPoolTable[i].sw_asid + '0';
-            buf[1] = '\0';
-            //print(buf);
-            //print("\n");
             if (swapPoolTable[i].sw_pte != NULL) {
                 swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON;
             }
-            swapPoolTable[i].sw_asid  = -1;
+            swapPoolTable[i].sw_asid   = -1;
             swapPoolTable[i].sw_pageNo = -1;
-            swapPoolTable[i].sw_pte   = NULL;
+            swapPoolTable[i].sw_pte    = NULL;
         }
     }
     TLBCLR();
-    exitAtomicSession();
 }
 
 // Restituisce l'indirizzo fisico di un frame della Swap Pool
@@ -100,26 +91,28 @@ void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags
 
 //algoritmo Round Robin per la sostituzione delle pagine
 void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
-    // Prima cerca un frame libero
+    /* Prima cerca un frame libero — se trovato aggiorna currentFrame
+     * così il round-robin continua da lì la prossima volta. */
     for (int j = 0; j < POOLSIZE; j++) {
         if (swapPoolTable[j].sw_asid == -1) {
-            *frameOut = j;
+            *frameOut    = j;
+            currentFrame = (j + 1) % POOLSIZE;
             return;
         }
     }
-    // Round-robin ma salta i frame del processo corrente
+    /* Nessun frame libero: round-robin saltando i frame del processo corrente. */
     int start = currentFrame;
     do {
         int candidate = currentFrame;
-        currentFrame = (currentFrame + 1) % POOLSIZE;
+        currentFrame  = (currentFrame + 1) % POOLSIZE;
         if (swapPoolTable[candidate].sw_asid != currentAsid) {
             *frameOut = candidate;
             return;
         }
     } while (currentFrame != start);
-    
-    // Tutti i frame appartengono al processo corrente — usa FIFO normale
-    *frameOut = currentFrame;
+
+    /* Tutti i frame appartengono al processo corrente — FIFO normale. */
+    *frameOut    = currentFrame;
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
 
