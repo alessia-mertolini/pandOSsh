@@ -22,20 +22,29 @@ void exitAtomicSession() {
 }
 
 void releaseFramesOfProcess(int asid) {
-    /* Chiamato con swapPoolSemaphore già tenuto dal chiamante.
-     * Non serve atomic session propria: il mutex garantisce l'esclusione
-     * sulla swapPoolTable; TLBCLR è un'istruzione singola. */
+    enterAtomicSession();
     for (int i = 0; i < POOLSIZE; i++) {
         if (swapPoolTable[i].sw_asid == asid) {
+            //print("[RELEASE] frame=");
+            char buf[2];
+            buf[0] = i + '0';
+            buf[1] = '\0';
+            //print(buf);
+            //print(" asid=");
+            buf[0] = swapPoolTable[i].sw_asid + '0';
+            buf[1] = '\0';
+            //print(buf);
+            //print("\n");
             if (swapPoolTable[i].sw_pte != NULL) {
                 swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON;
             }
-            swapPoolTable[i].sw_asid   = -1;
+            swapPoolTable[i].sw_asid  = -1;
             swapPoolTable[i].sw_pageNo = -1;
-            swapPoolTable[i].sw_pte    = NULL;
+            swapPoolTable[i].sw_pte   = NULL;
         }
     }
     TLBCLR();
+    exitAtomicSession();
 }
 
 // Restituisce l'indirizzo fisico di un frame della Swap Pool
@@ -91,28 +100,26 @@ void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags
 
 //algoritmo Round Robin per la sostituzione delle pagine
 void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
-    /* Prima cerca un frame libero — se trovato aggiorna currentFrame
-     * così il round-robin continua da lì la prossima volta. */
+    // Prima cerca un frame libero
     for (int j = 0; j < POOLSIZE; j++) {
         if (swapPoolTable[j].sw_asid == -1) {
-            *frameOut    = j;
-            currentFrame = (j + 1) % POOLSIZE;
+            *frameOut = j;
             return;
         }
     }
-    /* Nessun frame libero: round-robin saltando i frame del processo corrente. */
+    // Round-robin ma salta i frame del processo corrente
     int start = currentFrame;
     do {
         int candidate = currentFrame;
-        currentFrame  = (currentFrame + 1) % POOLSIZE;
+        currentFrame = (currentFrame + 1) % POOLSIZE;
         if (swapPoolTable[candidate].sw_asid != currentAsid) {
             *frameOut = candidate;
             return;
         }
     } while (currentFrame != start);
-
-    /* Tutti i frame appartengono al processo corrente — FIFO normale. */
-    *frameOut    = currentFrame;
+    
+    // Tutti i frame appartengono al processo corrente — usa FIFO normale
+    *frameOut = currentFrame;
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
 
@@ -200,9 +207,9 @@ void pager() {
             p = (int)(missing_vpn - 0x80000); // Pagine di codice (0-30)
         } else {
             // ERRORE: Segmentation Fault!
-            // Dobbiamo rilasciare il semaforo prima di ucciderla!
+            // Rilascia il semaforo prima di terminare
             SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
-            programTrapSupportHandler(support);
+            programTrapSupportHandler(support, 0);
             return;
         }
         
@@ -244,8 +251,8 @@ void pager() {
             //8c)
             int writeStatus = readOrWriteToFlash(oldProcAsid, oldProcVpn, i, FLASHWRITE);
             if (writeStatus != OK) {
-                SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0); // RILASCIA IL SEMAFORO!
-                programTrapSupportHandler(support);
+                /* Tiene ancora swapPoolSemaphore: programTrapSupportHandler lo rilascia. */
+                programTrapSupportHandler(support, 1);
                 return;
             }
         }
@@ -258,10 +265,9 @@ void pager() {
         //print(devNo);
         //print("\n");
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
-        //print("[DEBUG] Pager: Flash Device letto con successo!\n");
         if (readStatus != OK) {
-            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0); // RILASCIA IL SEMAFORO!
-            programTrapSupportHandler(support);
+            /* Tiene ancora swapPoolSemaphore: programTrapSupportHandler lo rilascia. */
+            programTrapSupportHandler(support, 1);
             return;
         }
 
@@ -295,7 +301,7 @@ void pager() {
         LDST(exceptionState);
     }
     else { // TLB-Modification exception
-        programTrapSupportHandler(support);
+        programTrapSupportHandler(support, 0);
         return;
     }
 }

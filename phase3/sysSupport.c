@@ -41,29 +41,26 @@ static int isShellProcess(support_t *sup) {
  *   Esegue le stesse operazioni di SYS2: V sul semaforo master/shell,
  *   poi NSYS2 per terminare il processo.
  * ========================================================================= */
-void programTrapSupportHandler(support_t *sup) {
-    //print("\n[DEBUG] PROGRAM TRAP CHIAMATO! Morte del processo.\n");
+void programTrapSupportHandler(support_t *sup, int holdingMutex) {
+    if (holdingMutex) {
+        /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
+        releaseFramesOfProcess(sup->sup_asid);
+        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+    } else {
+        /* Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi V. */
+        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+        releaseFramesOfProcess(sup->sup_asid);
+        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+    }
 
-    // FIX FONDAMENTALE: Puliamo i frame fantasma prima di morire!
-    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
-    releaseFramesOfProcess(sup->sup_asid);
-    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
-
-    /* V sul masterSemaphore (se il processo è la shell) oppure
-       sul shellSemaphore (se è un programma figlio della shell).
-       La logica corretta dipende dall'architettura shell/initProc;
-       qui si esegue la V generica sul masterSemaphore [Section 9].
-       In un'implementazione completa: distinguere shell da child.  */
-    if(isShellProcess(sup)) {
+    if (isShellProcess(sup)) {
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else {
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
 
-    /* Termina il processo tramite NSYS2 */
     SYSCALL(TERMPROCESS, 0, 0, 0);
-
-    /* UNREACHABLE – NSYS2 non ritorna mai*/
+    /* UNREACHABLE */
 }
 
 /* -----------------------------------------------------------------------
@@ -119,13 +116,7 @@ int transmitChar(int devNo, char c) {
  * Restituisce la status word: byte basso = stato, byte 1 = carattere ricevuto.
  */
 int receiveChar(int devNo) {
-    // * modifica di debug
-    // termreg_t *termReg = TERM_REG_ADDR(devNo);
-
-    // return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
-
-    /* Stesso fix della transmitChar per la lettura da tastiera */
-    unsigned int baseAddr = 0x10000254 + (devNo * 0x10);
+    unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
     termreg_t *termReg = (termreg_t *)baseAddr;
 
     return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
@@ -329,7 +320,7 @@ static void sys6Execute(support_t *sup) {
 
     /* Solo la shell può eseguire SYS6 (Spec Sezione 7.4). */
     if (!isShellProcess(sup)) {
-        programTrapSupportHandler(sup);
+        programTrapSupportHandler(sup, 0);
         /* non ritorna */
     }
 
@@ -391,8 +382,8 @@ void generalExceptionHandler(void) {
         /* SYSCALL con a0 > 0 (Sezione 7). */
         syscallExceptionHandler(sup);
     } else {
-        /* Program Trap (Sezione 8) -> Grazia. */
-        programTrapSupportHandler(sup);
+        /* Program Trap (Sezione 8). */
+        programTrapSupportHandler(sup, 0);
     }
 
     /* non ritorna mai */
@@ -422,7 +413,7 @@ void syscallExceptionHandler(support_t *sup) {
             break;
         default:
             /* SYSCALL non supportata: tratta come Program Trap. */
-            programTrapSupportHandler(sup);
+            programTrapSupportHandler(sup, 0);
             break;
     }
 }

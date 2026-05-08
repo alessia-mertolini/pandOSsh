@@ -53,7 +53,15 @@ int transmitChar(int devNo, char c);
  */
 int receiveChar(int devNo);
 
-void programTrapSupportHandler(support_t *sup);
+/*
+ * programTrapSupportHandler  (Sezione 8)
+ *
+ * Termina il processo in modo ordinato.
+ * holdingMutex: 1 se il chiamante detiene già swapPoolSemaphore
+ *               (es. path di errore nel pager), 0 altrimenti.
+ * Non ritorna mai.
+ */
+void programTrapSupportHandler(support_t *sup, int holdingMutex);
 
 #define TERM_REG_ADDR(devNo) \
         ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
