@@ -16,6 +16,10 @@
     - Sezione 6 corretta
     - Sezione 7.1 corretta
     - Sezione 7.2 corretta
+
+    - Sezione 9 corretta
+
+    - Sezione 11 corretta
 */
 
 #include "../headers/const.h"
@@ -52,11 +56,11 @@ static support_t *allocSupportStruct(int asid);
 void test() {
     initSwapStructures();
 
-    // init semafori
-    // devices
+    // init semafori device
     for(int i = 0; i < DEVPERINT; i++) {
         flashSem[i] = 1;
     }
+    //semafori per il terminale (read e write)
     readTerminalSemaphore = 1;
     writeTerminalSemaphore = 1;
 
@@ -64,8 +68,8 @@ void test() {
     masterSemaphore = 0;
     shellSemaphore = 0;
 
-    /* ── 4. Lancia la shell (ASID 1 per convenzione) ────────────────────── */
-    launchUProc(1 /* SHELL_ASID */);
+    /* 4. Lancia la shell (ASID 1 per convenzione)*/
+    launchUProc(1);
 
     SYSCALL(PASSEREN, (int)&masterSemaphore,0,0);
 
@@ -79,13 +83,14 @@ void test() {
  * launchUProc() - Crea e dispatcha un U-proc tramite NSYS1 (CREATEPROCESS)
  * ----------------------------------------------------------------------- */
 void launchUProc(int asid) {
-    state_t     uprocState;
+    //stato del processore iniziale dell'user process iniziale
+    state_t uprocState;
 
     // AZZERAMENTO MANUALE PER RISOLVERE LA SPAZZATURA:
-    char *ptr = (char *)&uprocState;
-    for (int i = 0; i < sizeof(state_t); i++) {
-        ptr[i] = 0;
-    }
+    // char *ptr = (char *)&uprocState;
+    // for (int i = 0; i < sizeof(state_t); i++) {
+    //     ptr[i] = 0;
+    // }
     
     support_t  *sup = allocSupportStruct(asid);
 
@@ -101,11 +106,11 @@ void launchUProc(int asid) {
                        | MSTATUS_MIE_MASK;           /* interrupt globali on           */
     /* MPP = 00 => user mode al ritorno da eccezione */
 
-    /* ASID nel campo EntryHi: identifica lo spazio di indirizzamento */
-    uprocState.entry_hi = asid << ASIDSHIFT;
-
     /* Abilita il Local Timer del processore */
     uprocState.mie = MIE_ALL;
+
+    /* ASID nel campo EntryHi: identifica lo spazio di indirizzamento */
+    uprocState.entry_hi = asid << ASIDSHIFT;
 
     /* ── Crea il processo ───────────────────────────────────────────────── */
     int pid = SYSCALL(CREATEPROCESS,(int)&uprocState, PROCESS_PRIO_LOW, (int)sup);
@@ -124,35 +129,32 @@ static support_t *allocSupportStruct(int asid) {
     /* Gli ASID vanno da 1 a UPROCMAX: usiamo asid-1 come indice. */
     support_t *sup = &supportStructPool[asid - 1];
 
-    /* ── sup_asid ───────────────────────────────────────────────────────── */
     sup->sup_asid = asid;
 
     /* ── Pagina Table (sup_privatePgTbl) ────────────────────────────────── */
     /* Prime 31 entry: pagine .text/.data a partire da 0x80000000 */
     for (int i = 0; i < USERPGTBLSIZE - 1; i++) {
-        sup->sup_privatePgTbl[i].pte_entryHI =
-            (0x80000 + i) << VPNSHIFT | (asid << ASIDSHIFT);
-        sup->sup_privatePgTbl[i].pte_entryLO =
-            DIRTYON;        /* D=1, V=0, G=0 */
+        sup->sup_privatePgTbl[i].pte_entryHI = (0x80000 + i) << VPNSHIFT | (asid << ASIDSHIFT);
+        sup->sup_privatePgTbl[i].pte_entryLO = DIRTYON;        /* D=1, V=0, G=0 */
     }
     /* Entry 31: pagina stack (VPN 0xBFFFF -> top a 0xC0000000) */
-    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryHI =
-        0xBFFFF << VPNSHIFT | (asid << ASIDSHIFT);
-    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryLO =
-        DIRTYON;
+    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryHI = 0xBFFFF << VPNSHIFT | (asid << ASIDSHIFT);
+    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryLO = DIRTYON;
 
-    /* ── Contesti eccezione ─────────────────────────────────────────────── */
+    /* === Contesti eccezione === */
     /* PGFAULTEXCEPT (0): handler TLB → vmSupport.c */
-    sup->sup_exceptContext[PGFAULTEXCEPT].pc     = (memaddr)pager;
+    sup->sup_exceptContext[PGFAULTEXCEPT].pc = (memaddr)pager;
     sup->sup_exceptContext[PGFAULTEXCEPT].status = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr =
-        (memaddr)&sup->sup_stackTLB[499];   /* stack cresce verso il basso */
+    //stackTLB: area del tlb exception handler del processo
+    //nota: stack cresce verso il basso
+    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr =(memaddr)&sup->sup_stackTLB[499];
 
     /* GENERALEXCEPT (1): handler generale → sysSupport.c */
-    sup->sup_exceptContext[GENERALEXCEPT].pc     = (memaddr)generalExceptionHandler;
+    sup->sup_exceptContext[GENERALEXCEPT].pc = (memaddr)generalExceptionHandler;
     sup->sup_exceptContext[GENERALEXCEPT].status = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[GENERALEXCEPT].stackPtr =
-        (memaddr)&sup->sup_stackGen[499];
+    //stackTLB: area del general exception handler del processo
+    //nota: stack cresce verso il basso
+    sup->sup_exceptContext[GENERALEXCEPT].stackPtr = (memaddr)&sup->sup_stackGen[499];
 
     return sup;
 }

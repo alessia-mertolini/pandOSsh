@@ -21,7 +21,6 @@ void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
 }
 
-// * NON UTILIZZATA
 void releaseFramesOfProcess(int asid) {
     enterAtomicSession();
     for (int i = 0; i < POOLSIZE; i++) {
@@ -74,23 +73,20 @@ void initSwapStructures() {
   @return: aggiorna la pagetable e il tlb con la pagina e i flag passati
 */
 void updateTLB(pteEntry_t *pageTable) {
-    // * 2 - poi aggiorniamo il TLB
-    // unsigned int oldEntryHi = getENTRYHI(); // processo che ha causato il page fault
-    // setENTRYHI(pageTable->pte_entryHI); // pagina vittima passata come parametro
+    // mi salvo il processo che ha causato il page fault
+    unsigned int oldEntryHi = getENTRYHI();
+    setENTRYHI(pageTable->pte_entryHI); // pagina vittima passata come parametro
 
-    // ricerca nel TLB
-    // TLBP();
-    // if(getINDEX() >= 0) {
-    //   // Se c'è, aggiorna subito il registro fisico con il nuovo EntryLo (V, D, G e PFN)
-    //   setENTRYLO(pageTable->pte_entryLO);
-    //   TLBWI();
-    // }
+    //ricerca nel TLB se esiste la pagina vittima
+    TLBP(); //consulta entryHI
+    if ((getINDEX() & PRESENTFLAG) == 0) {
+        // Se c'è, aggiorna subito il registro fisico con il nuovo EntryLo (V, D, G e PFN)
+        setENTRYLO(pageTable->pte_entryLO);
+        TLBWI();
+    }
 
-    // ripristino del processo corrente
-    // setENTRYHI(oldEntryHi);
-
-    //TODO: dopo debug sostituire la riga seguente con il frammento di codice precedente
-    TLBCLR();
+    //ripristino del processo corrente
+    setENTRYHI(oldEntryHi);
 }
 
 // update PageTable Entry

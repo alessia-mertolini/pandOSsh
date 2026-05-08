@@ -43,7 +43,6 @@ static int isShellProcess(support_t *sup) {
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup) {
     print("\n[DEBUG] PROGRAM TRAP CHIAMATO! Morte del processo.\n");
-    //(void)sup;  /* non usato direttamente, ma utile per future estensioni */
 
     // FIX FONDAMENTALE: Puliamo i frame fantasma prima di morire!
     SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
@@ -172,7 +171,7 @@ static void sys2Terminate(support_t *sup) {
     }
 
     print("[DEBUG-SYS2] V completata! Chiamo TERMPROCESS (NSYS2).\n");
-    
+
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
