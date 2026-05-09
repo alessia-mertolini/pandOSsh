@@ -339,12 +339,12 @@ static void sys6Execute(support_t *sup) {
     launchUProc(safe_asid);
 
     /* Blocca la shell fino alla terminazione del figlio. */
+    SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
     
     /* Figlio terminato: riprende la shell. */
     savedState->reg_a0 = 0;
     savedState->pc_epc += WORDLEN;
     
-    SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
     LDST(savedState);
 }
 
