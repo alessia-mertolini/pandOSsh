@@ -157,9 +157,9 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
     }
 
-    SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
-    releaseFramesOfProcess(sup->sup_asid);
-    SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+    // SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+    // releaseFramesOfProcess(sup->sup_asid);
+    // SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
 
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
@@ -168,8 +168,6 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
     }
 
     TLBCLR();
-
-
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
