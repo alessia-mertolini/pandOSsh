@@ -36,43 +36,13 @@ static int isShellProcess(support_t *sup) {
     return (sup->sup_asid == SHELL_ASID);
 }
 
-/* =========================================================================
- * programTrapSupportHandler  [Section 8]
- *   Termina il U-proc in modo ordinato.
- *   Se il processo detiene la mutua esclusione sulla Swap Pool,
- *   il chiamante deve rilasciarla PRIMA di invocare questa funzione.
- *   Esegue le stesse operazioni di SYS2: V sul semaforo master/shell,
- *   poi NSYS2 per terminare il processo.
- * ========================================================================= */
-void programTrapSupportHandler(support_t *sup, int holdingMutex) {
-    if (holdingMutex) {
-        /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
-        releaseFramesOfProcess(sup->sup_asid);
-        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
-    } else {
-        /* Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi V. */
-        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
-        releaseFramesOfProcess(sup->sup_asid);
-        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
-    }
-
-    if (isShellProcess(sup)) {
-        SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
-    } else {
-        SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
-    }
-
-    SYSCALL(TERMPROCESS, 0, 0, 0);
-    /* UNREACHABLE */
-}
-
 /* -----------------------------------------------------------------------
- * I/O terminale - basso livello (Sezione 7.2, 7.3)
- * ----------------------------------------------------------------------- */
+* I/O terminale - basso livello (Sezione 7.2, 7.3)
+* ----------------------------------------------------------------------- */
 
 /*
- * transmitChar
- *
+* transmitChar
+*
  * Trasmette il carattere c sul sotto-dispositivo di trasmissione del
  * terminale devNo tramite NSYS5 (DoIO sincrono).
  *
@@ -88,21 +58,21 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
 int transmitChar(int devNo, char c) {
     // * modifica di debug
     // termreg_t *termReg = TERM_REG_ADDR(devNo);
-
+    
     // /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
     // unsigned int command =
     //     ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
-
+    
     // return SYSCALL(DOIO, (int)&(termReg->transm_command), (int)command, 0);
 
     unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
     termreg_t *termReg = (termreg_t *)baseAddr;
-
+    
     /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
     /*
-        Esempio: c -> 97 -> 0x61 -> 0x00000061
-        Shift: 0x00006100
-        Or: 0x00006102    
+    Esempio: c -> 97 -> 0x61 -> 0x00000061
+    Shift: 0x00006100
+    Or: 0x00006102    
     */
     unsigned int command = ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
 
@@ -110,26 +80,26 @@ int transmitChar(int devNo, char c) {
 }
 
 /*
- * receiveChar
- *
- * Riceve un carattere dal sotto-dispositivo di ricezione del terminale
- * devNo tramite NSYS5 (DoIO sincrono).
+* receiveChar
+*
+* Riceve un carattere dal sotto-dispositivo di ricezione del terminale
+* devNo tramite NSYS5 (DoIO sincrono).
  *
  * Scrive RECEIVECHAR(2) in RECV_COMMAND per avviare la ricezione.
  * Restituisce la status word: byte basso = stato, byte 1 = carattere ricevuto.
  */
-int receiveChar(int devNo) {
+ int receiveChar(int devNo) {
     // termreg_t *termReg = TERM_REG_ADDR(devNo);
 
     unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
     termreg_t *termReg = (termreg_t *)baseAddr;
-
+     
     return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
 }
 
 /* -----------------------------------------------------------------------
- * SYS2 - Terminate (Sezione 7.1)
- * ----------------------------------------------------------------------- */
+* SYS2 - Terminate (Sezione 7.1)
+* ----------------------------------------------------------------------- */
 
 /*
  * sys2Terminate
@@ -145,22 +115,18 @@ int receiveChar(int devNo) {
  *
  * Non ritorna mai.
  */
-static void sys2Terminate(support_t *sup, int holdingMutex) {
+ static void sys2Terminate(support_t *sup, int holdingMutex) {
      if (holdingMutex) {
         /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
         releaseFramesOfProcess(sup->sup_asid);
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
-    } else {
+        } else {
         /* Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi V. */
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
         releaseFramesOfProcess(sup->sup_asid);
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
     }
-
-    // SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
-    // releaseFramesOfProcess(sup->sup_asid);
-    // SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
-
+    
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
@@ -168,12 +134,13 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
     }
 
     TLBCLR();
+    
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
 
 /* -----------------------------------------------------------------------
- * SYS4 - WriteTerminal (Sezione 7.2)
- * ----------------------------------------------------------------------- */
+* SYS4 - WriteTerminal (Sezione 7.2)
+* ----------------------------------------------------------------------- */
 
 /*
  * sys4WriteTerminal
@@ -190,20 +157,20 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
  *   successo:    a0 = numero caratteri trasmessi
  *   errore I/O:  a0 = -(status word del device)
  */
-static void sys4WriteTerminal(support_t *sup) {
+ static void sys4WriteTerminal(support_t *sup) {
     state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
     unsigned int virtAddr   = savedState->reg_a1; // primo carattere trasmesso
     int len = (int) savedState->reg_a2;
-
+    
     /* Il terminale della shell è il numero 0. */
     int devNo = SHELL_TERMINAL;
-
+    
     /* Validazione lunghezza. */
     if (len < 0 || len > MAXSTRLENG) {
         sys2Terminate(sup, 0);
         /* non ritorna */
     }
-
+    
     /* Validazione indirizzo: la stringa deve stare interamente in kuseg. */
     if (virtAddr < KUSEG || virtAddr + len > USERSTACKTOP) {
         sys2Terminate(sup, 0);
@@ -212,7 +179,7 @@ static void sys4WriteTerminal(support_t *sup) {
 
     /* Trasmissione carattere per carattere. */
     char *str = (char *)virtAddr;
-
+    
     int transmitted = 0;
     int i;
 
@@ -222,7 +189,7 @@ static void sys4WriteTerminal(support_t *sup) {
         char c = str[i]; 
         
         int status = transmitChar(devNo, c);
-
+        
         /* Controlla solo il byte di stato. */
         if ((status & TERM_STATUS_MASK) != OKCHARTRANS) {
             /* Errore device: ritorna il negativo dello status word. */
@@ -234,25 +201,26 @@ static void sys4WriteTerminal(support_t *sup) {
         }
         transmitted++;
     }
-    SYSCALL(VERHOGEN, (int)&writeTerminalSemaphore, 0, 0);
     
     /* Successo. */
     savedState->reg_a0 = (unsigned int)transmitted;
     savedState->pc_epc += WORDLEN;
+
+    SYSCALL(VERHOGEN, (int)&writeTerminalSemaphore, 0, 0);
     LDST(savedState);
 }
 
 /* -----------------------------------------------------------------------
- * SYS5 - ReadTerminal (Sezione 7.3)
- * ----------------------------------------------------------------------- */
+* SYS5 - ReadTerminal (Sezione 7.3)
+* ----------------------------------------------------------------------- */
 
 /*
- * sys5ReadTerminal
- *
- * Parametri da sup_exceptState[GENERALEXCEPT]:
- *   a1 = virtAddr   indirizzo virtuale del buffer di destinazione
- *
- * Legge caratteri finché non arriva '\n' o si raggiunge MAXSTRLENG.
+* sys5ReadTerminal
+*
+* Parametri da sup_exceptState[GENERALEXCEPT]:
+*   a1 = virtAddr   indirizzo virtuale del buffer di destinazione
+*
+* Legge caratteri finché non arriva '\n' o si raggiunge MAXSTRLENG.
  *
  * Errori che causano terminazione dell'U-proc (Spec Sezione 7.3):
  *   - virtAddr fuori da [KUSEG, USERSTACKTOP)
@@ -261,14 +229,14 @@ static void sys4WriteTerminal(support_t *sup) {
  *   successo:    a0 = numero caratteri ricevuti
  *   errore I/O:  a0 = -(status word del device)
  */
-static void sys5ReadTerminal(support_t *sup) {
-    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
-    char    *virtAddr   = (char *)savedState->reg_a1;
+ static void sys5ReadTerminal(support_t *sup) {
+     state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
+     char    *virtAddr   = (char *)savedState->reg_a1;
 
-    int devNo = SHELL_TERMINAL;
-
-    /* Validazione indirizzo. */
-    if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
+     int devNo = SHELL_TERMINAL;
+     
+     /* Validazione indirizzo. */
+     if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
         sys2Terminate(sup, 0);
         /* non ritorna */
     }
@@ -280,10 +248,10 @@ static void sys5ReadTerminal(support_t *sup) {
         int  status = receiveChar(devNo);
         int  stCode = status & TERM_STATUS_MASK;
         char c      = (char)((status & TERM_CHAR_MASK) >> TERM_CHAR_SHIFT);
-
+        
         if (stCode != OKCHARTRANS) {
             /* OKCHARTRANS == 5 vale sia per trasmissione che ricezione
-             * (CHARRECV == 5 è lo stesso valore in pandos_const.h). */
+            * (CHARRECV == 5 è lo stesso valore in pandos_const.h). */
             savedState->reg_a0 = (unsigned int)(-(status));
             savedState->pc_epc += WORDLEN;
             SYSCALL(VERHOGEN,(int)&readTerminalSemaphore, 0,0);
@@ -299,17 +267,18 @@ static void sys5ReadTerminal(support_t *sup) {
             break;
         }
     }
-    SYSCALL(VERHOGEN, (int)&readTerminalSemaphore, 0, 0);
-
+    
     savedState->reg_a0 = (unsigned int)received;
     savedState->pc_epc += WORDLEN;
+
+    SYSCALL(VERHOGEN, (int)&readTerminalSemaphore, 0, 0);
     LDST(savedState);
 }
 
 /* -----------------------------------------------------------------------
  * SYS6 - Execute (Sezione 7.4)
  * ----------------------------------------------------------------------- */
-
+ 
 /*
  * sys6Execute
  *
@@ -327,33 +296,63 @@ static void sys5ReadTerminal(support_t *sup) {
 static void sys6Execute(support_t *sup) {
     state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
     int requested_asid = (int)savedState->reg_a1;
-
+    
     /* Solo la shell può eseguire SYS6 (Spec Sezione 7.4). */
     if (!isShellProcess(sup)) {
         programTrapSupportHandler(sup, 0);
         /* non ritorna */
     }
-
+    
     int safe_asid = 2 + ((requested_asid - 2) % (UPROCMAX - 1));
-
+    
     // print("[SYS6] Chiamo launchUProc...\n");
     /* Crea e lancia l'U-proc (initProc.c). */
     launchUProc(safe_asid);
-
+    
     /* Blocca la shell fino alla terminazione del figlio. */
     SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
-
+    
     /* Figlio terminato: riprende la shell. */
     savedState->reg_a0 = 0;
     savedState->pc_epc += WORDLEN;
     LDST(savedState);
 }
 
+/* =========================================================================
+ * programTrapSupportHandler  [Section 8]
+ *   Termina il U-proc in modo ordinato.
+ *   Se il processo detiene la mutua esclusione sulla Swap Pool,
+ *   il chiamante deve rilasciarla PRIMA di invocare questa funzione.
+ *   Esegue le stesse operazioni di SYS2: V sul semaforo master/shell,
+ *   poi NSYS2 per terminare il processo.
+ * ========================================================================= */
+void programTrapSupportHandler(support_t *sup, int holdingMutex) {
+    if (holdingMutex) {
+        /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
+        releaseFramesOfProcess(sup->sup_asid);
+        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+        } else {
+        /* Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi V. */
+        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
+        releaseFramesOfProcess(sup->sup_asid);
+        SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
+    }
+    
+    if (isShellProcess(sup)) { // process is shell
+        SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
+    } else { // user process was started by shell
+        SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
+    }
+    
+    SYSCALL(TERMPROCESS, 0, 0, 0);
+    /* UNREACHABLE */
+}
+
 /* -----------------------------------------------------------------------
  * Sezione 6 - General Exception Handler
  * ----------------------------------------------------------------------- */
-
-/*
+ 
+ /*
  * generalExceptionHandler
  *
  * Entry point per tutte le eccezioni non-TLB passate su dal Nucleus
@@ -403,7 +402,6 @@ void generalExceptionHandler(void) {
 /* -----------------------------------------------------------------------
  * Sezione 7 - SYSCALL Exception Handler
  * ----------------------------------------------------------------------- */
-
 
 void syscallExceptionHandler(support_t *sup) {
     state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);

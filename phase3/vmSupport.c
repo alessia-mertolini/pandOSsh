@@ -152,27 +152,6 @@ void pager() {
     state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
 
-    // ------ debug -------------
-    // ESTREMIAMO IL PC PER VEDERE DOVE CRASHA
-    unsigned int fault_pc = exceptionState->pc_epc;
-    char buf[2];
-    buf[0] = support->sup_asid + '0';
-    buf[1] = '\0';
-    ////print("\n[CRITICAL-PAGER] Pager invocato da ASID=");
-    ////print(buf);
-    ////print("\n[CRITICAL-PAGER] Indirizzo istruzione (PC) che ha causato il fault = 0x");
-    // ... stampa fault_pc in esadecimale (puoi usare la stessa logica che hai usato per pte_entryLO) ...
-    char buf3[12];
-    // stampa in esadecimale manuale
-    for (int k = 7; k >= 0; k--) {
-        int nibble = (fault_pc >> (k * 4)) & 0xF;
-        buf3[7 - k] = nibble < 10 ? '0' + nibble : 'A' + nibble - 10;
-    }
-    buf3[8] = '\n';
-    buf3[9] = '\0';
-    ////print(buf3);
-    ////print("\n");
-
     //TODO capire se la maschera applicata è corretta - cosa da debug
     //ricaviamo il codice di eccezione
     //unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
