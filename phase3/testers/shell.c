@@ -93,7 +93,7 @@ int main() {
         found = 0;
 
         // Tentativo di rallentare lo spam di chiamate ai programmi
-        // for(int i = 0; i < 1000; i++) {
+        // for(int i = 0; i < 5000; i++) {
         //     SYSCALL(EXECUTE, tests[0].asid, 0, 0);
         //     for (int i = 0; i < 500; i++) {;}
         //     SYSCALL(EXECUTE, tests[2].asid, 0, 0);

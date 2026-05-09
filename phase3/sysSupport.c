@@ -230,11 +230,12 @@ static void sys4WriteTerminal(support_t *sup) {
         }
         transmitted++;
     }
-    SYSCALL(VERHOGEN, (int)&writeTerminalSemaphore, 0, 0);
     
     /* Successo. */
     savedState->reg_a0 = (unsigned int)transmitted;
     savedState->pc_epc += WORDLEN;
+
+    SYSCALL(VERHOGEN, (int)&writeTerminalSemaphore, 0, 0);
     LDST(savedState);
 }
 
@@ -295,10 +296,11 @@ static void sys5ReadTerminal(support_t *sup) {
             break;
         }
     }
-    SYSCALL(VERHOGEN, (int)&readTerminalSemaphore, 0, 0);
-
+    
     savedState->reg_a0 = (unsigned int)received;
     savedState->pc_epc += WORDLEN;
+    
+    SYSCALL(VERHOGEN, (int)&readTerminalSemaphore, 0, 0);
     LDST(savedState);
 }
 

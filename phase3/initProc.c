@@ -151,11 +151,11 @@ static support_t *allocSupportStruct(int asid) {
     /* ── Contesti eccezione ─────────────────────────────────────────────── */
     sup->sup_exceptContext[PGFAULTEXCEPT].pc       = (memaddr)pager;
     sup->sup_exceptContext[PGFAULTEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr = (memaddr)&sup->sup_stackTLB[999];
+    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr = (memaddr)&sup->sup_stackTLB[499];
 
     sup->sup_exceptContext[GENERALEXCEPT].pc       = (memaddr)generalExceptionHandler;
     sup->sup_exceptContext[GENERALEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[GENERALEXCEPT].stackPtr = (memaddr)&sup->sup_stackGen[999];
+    sup->sup_exceptContext[GENERALEXCEPT].stackPtr = (memaddr)&sup->sup_stackGen[499];
 
     return sup;
 }
