@@ -200,13 +200,13 @@ static void sys4WriteTerminal(support_t *sup) {
 
     /* Validazione lunghezza. */
     if (len < 0 || len > MAXSTRLENG) {
-        sys2Terminate(sup,!swapPoolSemaphore);
+        sys2Terminate(sup, 0);
         /* non ritorna */
     }
 
     /* Validazione indirizzo: la stringa deve stare interamente in kuseg. */
     if (virtAddr < KUSEG || virtAddr + len > USERSTACKTOP) {
-        sys2Terminate(sup,!swapPoolSemaphore);
+        sys2Terminate(sup, 0);
         /* non ritorna */
     }
 
@@ -269,7 +269,7 @@ static void sys5ReadTerminal(support_t *sup) {
 
     /* Validazione indirizzo. */
     if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
-        sys2Terminate(sup,!swapPoolSemaphore);
+        sys2Terminate(sup, 0);
         /* non ritorna */
     }
 
@@ -411,7 +411,7 @@ void syscallExceptionHandler(support_t *sup) {
 
     switch (sysNum) {
         case TERMINATE:
-            sys2Terminate(sup,!swapPoolSemaphore);
+            sys2Terminate(sup, 0);
             break;
         case WRITETERMINAL:
             sys4WriteTerminal(sup);

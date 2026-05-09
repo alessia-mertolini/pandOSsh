@@ -93,38 +93,38 @@ int main() {
         found = 0;
 
         // Tentativo di rallentare lo spam di chiamate ai programmi
-        for(int i = 0; i < 1000; i++) {
-            SYSCALL(EXECUTE, tests[0].asid, 0, 0);
-            for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[2].asid, 0, 0);
-            for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[3].asid, 0, 0);
-            for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[4].asid, 0, 0);
-            for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[5].asid, 0, 0);
-            for (int i = 0; i < 500; i++) {;}
+        // for(int i = 0; i < 1000; i++) {
+        //     SYSCALL(EXECUTE, tests[0].asid, 0, 0);
+        //     for (int i = 0; i < 500; i++) {;}
+        //     SYSCALL(EXECUTE, tests[2].asid, 0, 0);
+        //     for (int i = 0; i < 500; i++) {;}
+        //     SYSCALL(EXECUTE, tests[3].asid, 0, 0);
+        //     for (int i = 0; i < 500; i++) {;}
+        //     SYSCALL(EXECUTE, tests[4].asid, 0, 0);
+        //     for (int i = 0; i < 500; i++) {;}
+        //     SYSCALL(EXECUTE, tests[5].asid, 0, 0);
+        //     for (int i = 0; i < 500; i++) {;}
+        // }
+        // print(WRITETERMINAL, "Stress test completato!\n");
+
+        for (i = 0; i < MAX_PROGS; i++) {
+            if (str_cmp(input_buf, tests[i].name)) {
+                found = 1;
+
+
+                /* SYS6: Execute - crea il processo figlio e attende */
+                SYSCALL(EXECUTE, tests[i].asid, 0, 0);
+
+                /* Siamo tornati: il figlio è terminato */
+                print(WRITETERMINAL, "Program terminated.\n");
+                break;
+            }
         }
-        print(WRITETERMINAL, "Stress test completato!\n");
 
-        // for (i = 0; i < MAX_PROGS; i++) {
-        //     if (str_cmp(input_buf, tests[i].name)) {
-        //         found = 1;
-
-
-        //         /* SYS6: Execute - crea il processo figlio e attende */
-        //         SYSCALL(EXECUTE, tests[i].asid, 0, 0);
-
-        //         /* Siamo tornati: il figlio è terminato */
-        //         print(WRITETERMINAL, "Program terminated.\n");
-        //         break;
-        //     }
-        // }
-
-        // if (!found) {
-        //     print(WRITETERMINAL, "Command not found: ");
-        //     print(WRITETERMINAL, input_buf);
-        //     print(WRITETERMINAL, "\n");
-        // }
+        if (!found) {
+            print(WRITETERMINAL, "Command not found: ");
+            print(WRITETERMINAL, input_buf);
+            print(WRITETERMINAL, "\n");
+        }
     }
 }
