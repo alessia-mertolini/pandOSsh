@@ -22,10 +22,11 @@ void exitAtomicSession() {
 }
 
 void releaseFramesOfProcess(int asid) {
+    enterAtomicSession(); 
     for (int i = 0; i < POOLSIZE; i++) {
         if (swapPoolTable[i].sw_asid == asid) {
             if (swapPoolTable[i].sw_pte != NULL) {
-                swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON;
+                swapPoolTable[i].sw_pte->pte_entryLO = DIRTYON;
             }
             swapPoolTable[i].sw_asid  = -1;
             swapPoolTable[i].sw_pageNo = -1;
@@ -33,6 +34,7 @@ void releaseFramesOfProcess(int asid) {
         }
     }
     TLBCLR();
+    exitAtomicSession();
 }
 
 // Restituisce l'indirizzo fisico di un frame della Swap Pool
