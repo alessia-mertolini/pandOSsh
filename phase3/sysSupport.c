@@ -10,31 +10,16 @@
  */
 
 #include "./headers/sysSupport.h"
-#include "./headers/costantiNopoli.h"
-#include "./testers/h/tconst.h"
-#include "./headers/vmSupport.h"
 
-// debug
-// #include "print.h"
+extern void releaseFramesOfProcess(int asid); // importata da vmSupport.h
 
-/* -----------------------------------------------------------------------
- * Simboli esterni forniti dagli altri moduli
- * ----------------------------------------------------------------------- */
-
-//TODO Aspettare initproc.c di ALE
-/* initProc.c */
-extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shell alla fine */
-extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
-extern void launchUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
-extern int swapPoolSemaphore;
-
-extern int writeTerminalSemaphore;
-extern int readTerminalSemaphore;
-
-//Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
+// Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
 static int isShellProcess(support_t *sup) {
     return (sup->sup_asid == SHELL_ASID);
 }
+
+// Prototipi locali
+static void syscallExceptionHandler(support_t *sup);
 
 /* -----------------------------------------------------------------------
 * I/O terminale - basso livello (Sezione 7.2, 7.3)
@@ -55,7 +40,7 @@ static int isShellProcess(support_t *sup) {
  * Valore scritto in TRANSM_COMMAND: (char << 8) | TRANSMITCHAR(2).
  * Restituisce la status word: byte basso = stato, byte 1 = carattere eco.
  */
-int transmitChar(int devNo, char c) {
+static int transmitChar(int devNo, char c) {
     // * modifica di debug
     // termreg_t *termReg = TERM_REG_ADDR(devNo);
     
@@ -88,7 +73,7 @@ int transmitChar(int devNo, char c) {
  * Scrive RECEIVECHAR(2) in RECV_COMMAND per avviare la ricezione.
  * Restituisce la status word: byte basso = stato, byte 1 = carattere ricevuto.
  */
- int receiveChar(int devNo) {
+static int receiveChar(int devNo) {
     // termreg_t *termReg = TERM_REG_ADDR(devNo);
 
     unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
@@ -115,7 +100,7 @@ int transmitChar(int devNo, char c) {
  *
  * Non ritorna mai.
  */
- static void sys2Terminate(support_t *sup, int holdingMutex) {
+static void sys2Terminate(support_t *sup, int holdingMutex) {
      if (holdingMutex) {
         /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
         releaseFramesOfProcess(sup->sup_asid);
@@ -130,6 +115,7 @@ int transmitChar(int devNo, char c) {
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
+        deallocSupportStruct(sup);  // ← restituisce alla free list
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
 
@@ -157,7 +143,7 @@ int transmitChar(int devNo, char c) {
  *   successo:    a0 = numero caratteri trasmessi
  *   errore I/O:  a0 = -(status word del device)
  */
- static void sys4WriteTerminal(support_t *sup) {
+static void sys4WriteTerminal(support_t *sup) {
     state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
     unsigned int virtAddr   = savedState->reg_a1; // primo carattere trasmesso
     int len = (int) savedState->reg_a2;
@@ -229,7 +215,7 @@ int transmitChar(int devNo, char c) {
  *   successo:    a0 = numero caratteri ricevuti
  *   errore I/O:  a0 = -(status word del device)
  */
- static void sys5ReadTerminal(support_t *sup) {
+static void sys5ReadTerminal(support_t *sup) {
      state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
      char    *virtAddr   = (char *)savedState->reg_a1;
 
@@ -305,7 +291,6 @@ static void sys6Execute(support_t *sup) {
     
     int safe_asid = 2 + ((requested_asid - 2) % (UPROCMAX - 1));
     
-    // print("[SYS6] Chiamo launchUProc...\n");
     /* Crea e lancia l'U-proc (initProc.c). */
     launchUProc(safe_asid);
     
@@ -341,6 +326,7 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
+        deallocSupportStruct(sup);  // ← restituisce alla free list
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
     
@@ -384,8 +370,6 @@ void generalExceptionHandler(void) {
      * GETEXECCODE (0x0000007C) maschera i bit 2-6; poi shift di CAUSESHIFT(2)
      * per ottenere il valore numerico del codice. */
     unsigned int cause   = sup->sup_exceptState[GENERALEXCEPT].cause;
-    // unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
-    // unsigned int excCode = cause & 0xFF;
     unsigned int excCode = CAUSE_EXCCODE(cause);
 
     if (excCode == SYSEXCEPTION) {
@@ -403,7 +387,7 @@ void generalExceptionHandler(void) {
  * Sezione 7 - SYSCALL Exception Handler
  * ----------------------------------------------------------------------- */
 
-void syscallExceptionHandler(support_t *sup) {
+static void syscallExceptionHandler(support_t *sup) {
     state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
     int sysNum = (int)savedState->reg_a0;
 

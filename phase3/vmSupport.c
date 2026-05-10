@@ -1,7 +1,4 @@
 #include "./headers/vmSupport.h"
-#include <uriscv/arch.h>
-#include <uriscv/liburiscv.h>
-// #include ".///print.h"
 
 //TODO controllare se 'swapPoolTable' e 'swapPoolSemaphore' devono essere static o no
 //TODO capire se sono estetiche le variabili qui
@@ -11,13 +8,14 @@ static swap_t swapPoolTable[POOLSIZE];
 //definizione del semaforo
 int swapPoolSemaphore;
 //frame corrente della page table da sostituire
-int currentFrame = 0;
+static int currentFrame = 0;
 
+extern int flashSem[DEVPERINT]; // importata da initProc.h
 
-void enterAtomicSession() {
+static void enterAtomicSession() {
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
 }
-void exitAtomicSession() {
+static void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
 }
 
@@ -36,7 +34,7 @@ void releaseFramesOfProcess(int asid) {
 }
 
 // Restituisce l'indirizzo fisico di un frame della Swap Pool
-memaddr frameAddressFunction(int frameIdx) {
+static memaddr frameAddressFunction(int frameIdx) {
     return (memaddr)(SWAP_POOL_START_ADDR + frameIdx * PAGESIZE);
 }
 
@@ -60,7 +58,7 @@ void initSwapStructures() {
   corretto per pte_entryLO, cioe' PFN << PFNSHIFT
   @return: aggiorna la pagetable e il tlb con la pagina e i flag passati
 */
-void updateTLB(pteEntry_t *pageTable) {
+static void updateTLB(pteEntry_t *pageTable) {
     // mi salvo il processo che ha causato il page fault
     unsigned int oldEntryHi = getENTRYHI();
     setENTRYHI(pageTable->pte_entryHI); // pagina vittima passata come parametro
@@ -79,14 +77,14 @@ void updateTLB(pteEntry_t *pageTable) {
 
 // update PageTable Entry
 // * physicalAddr deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
-void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
+static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
     pageTable->pte_entryLO = physicalAddr | bitFlags;
     updateTLB(pageTable); 
 }
 
 //algoritmo Round Robin per la sostituzione delle pagine
-void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
+static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
     // Prima cerca un frame libero
     for (int j = 0; j < POOLSIZE; j++) {
         if (swapPoolTable[j].sw_asid == -1) {
@@ -116,7 +114,7 @@ void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
     vpn e' un numero del tipo 0x80000...0xbffff mentre qua vogliamo un pageNo ovvero un numero tipo 0...31
 */
 //p = page number e frameNumber = i
-int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
+static int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
     unsigned int frameAddress = frameAddressFunction(frameNumber);
     // Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
     int devNo = asid - 1;
@@ -244,7 +242,7 @@ void pager() {
 }
 
 // * NON UTILIZZATA
-void initPageTable(support_t *s) {
+static void initPageTable(support_t *s) {
     for(int i = 0; i < USERPGTBLSIZE; i++) {
         volatile unsigned int vpn;
 
