@@ -46,6 +46,8 @@ int  shellSemaphore;   /* semaforo per i processi iniziati dalla shell */
 // Array dei semafori dei device - 8 flash device
 int flashSem[DEVPERINT];
 
+int procGoneSemaphore;
+
 // -------------------------------
 
 /* Pool statico di Support Structure, una per ogni possibile U-proc. */
@@ -77,6 +79,7 @@ void test() {
     // processes
     masterSemaphore = 0;
     shellSemaphore = 0;
+    procGoneSemaphore = 0;
 
     // Popola la free list con ASID 2-8
     for (int i = UPROCMAX - 1; i >= 1; i--) {

@@ -79,7 +79,7 @@ static void updateTLB(pteEntry_t *pageTable) {
 // * physicalAddr deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
 static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
-    pageTable->pte_entryLO = physicalAddr | bitFlags;
+    pageTable->pte_entryLO = (physicalAddr & ~((memaddr)PAGESIZE - 1)) | bitFlags;
     updateTLB(pageTable); 
 }
 

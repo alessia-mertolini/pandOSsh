@@ -78,10 +78,10 @@ static int str_cmp(const char *a, const char *b) {
 
 void main() {
     int status;
-    char firstInput[4];
-    char secondInput[4];
-    char thirdInput[4];
-    char output[4];
+    char firstInput[32];
+    char secondInput[32];
+    char thirdInput[32];
+    char output[32];
 
     print(WRITETERMINAL, "Calcolatrice avviata \nInserisci un numero: ");
     status = SYSCALL(READTERMINAL, (int)&firstInput[0], 0, 0);
@@ -102,7 +102,7 @@ void main() {
     status = SYSCALL(READTERMINAL, (int)&thirdInput[0], 0, 0);
     thirdInput[status] = EOS;
     removeNewLine(thirdInput);
-    if (firstInput[0] < '0' || firstInput[0] > '9' || firstInput[1] != '\0') {
+    if (thirdInput[0] < '0' || thirdInput[0] > '9' || thirdInput[1] != '\0') {
         print(WRITETERMINAL, "Errore: calcolatrice Single Digit\n");
         SYSCALL(TERMINATE, 0, 0, 0);
     }

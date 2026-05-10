@@ -12,6 +12,7 @@
 #include "./headers/sysSupport.h"
 
 extern void releaseFramesOfProcess(int asid); // importata da vmSupport.h
+extern int procGoneSemaphore;
 
 // Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
 static int isShellProcess(support_t *sup) {
@@ -116,6 +117,7 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
         deallocSupportStruct(sup);  // ← restituisce alla free list
+        SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
 
@@ -294,6 +296,8 @@ static void sys6Execute(support_t *sup) {
     /* Crea e lancia l'U-proc (initProc.c). */
     launchUProc(safe_asid);
     
+    // Aspetta che il figlio sia davvero morto (TERMPROCESS completato)
+    SYSCALL(PASSEREN, (int)&procGoneSemaphore, 0, 0);
     /* Blocca la shell fino alla terminazione del figlio. */
     SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
     
@@ -327,6 +331,7 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
         deallocSupportStruct(sup);  // ← restituisce alla free list
+        SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
     
