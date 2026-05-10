@@ -211,12 +211,6 @@ void pager() {
         }
 
         //9
-        ////print("[DEBUG] Pager: Leggo dal Flash Device: ");
-        char devNo[2];
-        devNo[0] = (support->sup_asid - 1) + '0';
-        devNo[1] = '\0';
-        ////print(devNo);
-        ////print("\n");
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
         if (readStatus != OK) {
             /* Tiene ancora swapPoolSemaphore: programTrapSupportHandler lo rilascia. */
@@ -237,16 +231,6 @@ void pager() {
         updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
         exitAtomicSession();
         unsigned int entryLO = support->sup_privatePgTbl[p].pte_entryLO;
-        char buf3[12];
-        // stampa in esadecimale manuale
-        for (int k = 7; k >= 0; k--) {
-            int nibble = (entryLO >> (k * 4)) & 0xF;
-            buf3[7 - k] = nibble < 10 ? '0' + nibble : 'A' + nibble - 10;
-        }
-        buf3[8] = '\n';
-        buf3[9] = '\0';
-        ////print("[PTE] pte_entryLO=0x");
-        ////print(buf3);
 
         //13
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);

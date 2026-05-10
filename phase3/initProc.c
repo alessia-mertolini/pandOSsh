@@ -104,7 +104,7 @@ void launchUProc(int asid) {
     uprocState.pc_epc  = UPROCSTARTADDR;
 
     /* SP: cima della stack page nel kuseg */
-    uprocState.reg_sp  = 0xC0000000;
+    uprocState.reg_sp  = USERSTACKTOP;
 
     /* User mode, tutti gli interrupt abilitati, PLT abilitato */
     uprocState.status  = MSTATUS_MPIE_MASK          /* interrupt abilitati al ritorno */
@@ -146,21 +146,30 @@ static support_t *allocSupportStruct(int asid) {
         (0xBFFFF << VPNSHIFT) | (asid << ASIDSHIFT);
     sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryLO = DIRTYON;
 
-    /* ── Azzera gli stack degli handler ────────────────────────────────── */
-    char *p;
-    p = (char *)sup->sup_stackTLB;
-    for (int i = 0; i < sizeof(sup->sup_stackTLB); i++) p[i] = 0;
-    p = (char *)sup->sup_stackGen;
-    for (int i = 0; i < sizeof(sup->sup_stackGen); i++) p[i] = 0;
+    /* ── Calcolo dinamico degli Stack Pointer fisici in RAM ────────────── */
+    volatile unsigned int ram_top;
+    RAMTOP(ram_top);
+
+    /*
+     * L'ultimo frame (ram_top) è usato da test().
+     * Assegniamo 2 frame fisici univoci per ogni ASID (da 1 a 8) partendo dal penultimo.
+     * Poiché lo stack cresce verso il basso, il valore dello SP è la fine del frame.
+     *
+     * Esempio per ASID 1:
+     * tlb_sp = ram_top - 1 * PAGESIZE  (penultimo frame)
+     * gen_sp = ram_top - 2 * PAGESIZE  (terzultimo frame)
+     */
+    unsigned int tlb_sp = ram_top - ((asid * 2) - 1) * PAGESIZE;
+    unsigned int gen_sp = ram_top - (asid * 2) * PAGESIZE;
 
     /* ── Contesti eccezione ─────────────────────────────────────────────── */
     sup->sup_exceptContext[PGFAULTEXCEPT].pc       = (memaddr)pager;
     sup->sup_exceptContext[PGFAULTEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr = (memaddr)&sup->sup_stackTLB[499];
+    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr = tlb_sp;
 
     sup->sup_exceptContext[GENERALEXCEPT].pc       = (memaddr)generalExceptionHandler;
     sup->sup_exceptContext[GENERALEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[GENERALEXCEPT].stackPtr = (memaddr)&sup->sup_stackGen[499];
+    sup->sup_exceptContext[GENERALEXCEPT].stackPtr = gen_sp;
 
     return sup;
 }
