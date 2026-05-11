@@ -19,39 +19,51 @@
 
     - Sezione 9 corretta
 
+    - Sezione 10
+        - updateTLB optimized
+        - free frame of process optimized
+        - pageReplacementAlgorithm optimized
+        - allocazione tlb e exc. handler stack direttamente dalla RAM
+        - allocate/deallocate per le support struct
+
     - Sezione 11 corretta
 */
 
-#include "../headers/const.h"
-#include "../headers/types.h"
+#include "./headers/initProc.h"
+#include "headers/vmSupport.h"
+
 #include <uriscv/liburiscv.h>
 
-#include "./headers/vmSupport.h"  /* initSwapStructs()                   */
-#include "./headers/sysSupport.h" /* indirizzo handler generali          */
+extern void initSwapStructures(); // importata da vmSupport.h
 
-#include <uriscv/types.h>
+// ----- Variabili esportate -------------
 
-//Array dei semafori dei device - 8 flash device
-int flashSem[DEVPERINT];
-
+// Semaforo per I/O su terminale
 int readTerminalSemaphore;
 int writeTerminalSemaphore;
 
 int  masterSemaphore;   /* shell container */
 int  shellSemaphore;   /* semaforo per i processi iniziati dalla shell */
 
+// Array dei semafori dei device - 8 flash device
+int flashSem[DEVPERINT];
+
+// -------------------------------
+
 /* Pool statico di Support Structure, una per ogni possibile U-proc. */
 support_t supportStructPool[UPROCMAX];
 
-/* -----------------------------------------------------------------------
- * Prototipi locali
- * ----------------------------------------------------------------------- */
-void launchUProc(int asid);
+// Lista delle support struct libere
+static support_t *freeList = NULL;
+
+
+// ---------- Prototipi esportati ---------
+support_t* launchUProc(int asid); 
+void deallocSupportStruct(support_t *sup);
+
+// ----------- Prototipi locali ------------
+static support_t *allocFromFreeList(void);
 static support_t *allocSupportStruct(int asid);
-
-
-// --- debug
-// #include "print.h"
 
 void test() {
     initSwapStructures();
@@ -63,26 +75,43 @@ void test() {
     //semafori per il terminale (read e write)
     readTerminalSemaphore = 1;
     writeTerminalSemaphore = 1;
-
+    
     // processes
     masterSemaphore = 0;
     shellSemaphore = 0;
+
+    // Popola la free list con ASID 2-8
+    for (int i = UPROCMAX - 1; i >= 1; i--) {
+        deallocSupportStruct(&supportStructPool[i]);
+    }
 
     /* 4. Lancia la shell (ASID 1 per convenzione)*/
     launchUProc(1);
 
     SYSCALL(PASSEREN, (int)&masterSemaphore,0,0);
 
-    //print("\n\nse mi vedi sei fritto!!\n\n");
-
     SYSCALL(TERMPROCESS,0,0,0);
 }
 
+// Aggiunge una support structure alla free list
+void deallocSupportStruct(support_t *sup) {
+    sup->s_list.next = (struct list_head *)freeList;
+    sup->sup_asid = -1;
+    freeList = sup;
+}
+
+// Preleva una support structure dalla free list
+static support_t *allocFromFreeList(void) {
+    if (freeList == NULL) return NULL;
+    support_t *sup = freeList;
+    freeList = (support_t *)sup->s_list.next;
+    return sup;
+}
 
 /* -----------------------------------------------------------------------
- * launchUProc() - Crea e dispatcha un U-proc tramite NSYS1 (CREATEPROCESS)
- * ----------------------------------------------------------------------- */
-void launchUProc(int asid) {
+* launchUProc() - Crea e dispatcha un U-proc tramite NSYS1 (CREATEPROCESS)
+* ----------------------------------------------------------------------- */
+support_t* launchUProc(int asid) {
     //stato del processore iniziale dell'user process iniziale
     state_t uprocState;
 
@@ -93,17 +122,17 @@ void launchUProc(int asid) {
     }
     
     support_t  *sup = allocSupportStruct(asid);
-
+    
     /* ── Stato iniziale del U-proc ──────────────────────────────────────── */
     /* PC: inizio sezione .text degli U-proc (vedi linker script crtsi.o) */
     uprocState.pc_epc  = UPROCSTARTADDR;
 
     /* SP: cima della stack page nel kuseg */
-    uprocState.reg_sp  = 0xC0000000;
-
+    uprocState.reg_sp  = USERSTACKTOP;
+    
     /* User mode, tutti gli interrupt abilitati, PLT abilitato */
     uprocState.status  = MSTATUS_MPIE_MASK          /* interrupt abilitati al ritorno */
-                       | MSTATUS_MIE_MASK;           /* interrupt globali on           */
+    | MSTATUS_MIE_MASK;           /* interrupt globali on           */
     /* MPP = 00 => user mode al ritorno da eccezione */
 
     /* Abilita il Local Timer del processore */
@@ -112,7 +141,6 @@ void launchUProc(int asid) {
     /* ASID nel campo EntryHi: identifica lo spazio di indirizzamento */
     uprocState.entry_hi = asid << ASIDSHIFT;
 
-    // print("Creazione del processo...\n");
     /* ── Crea il processo ───────────────────────────────────────────────── */
     int pid = SYSCALL(CREATEPROCESS,(int)&uprocState, PROCESS_PRIO_LOW, (int)sup);
 
@@ -120,6 +148,8 @@ void launchUProc(int asid) {
         /* CREATEPROCESS fallito: situazione irrecuperabile */
         PANIC();
     }
+
+    return sup;
 }
 
 /* -----------------------------------------------------------------------
@@ -127,7 +157,15 @@ void launchUProc(int asid) {
  * e la inizializza completamente.
  * ----------------------------------------------------------------------- */
 static support_t *allocSupportStruct(int asid) {
-    support_t *sup = &supportStructPool[asid - 1];
+    support_t *sup;
+    
+    if (asid == SHELL_ASID) {
+        // La shell usa sempre il primo slot — non passa per la free list
+        sup = &supportStructPool[0];
+    } else {
+        sup = allocFromFreeList();
+        if (sup == NULL) PANIC();  // non dovrebbe mai accadere
+    }
 
     sup->sup_asid = asid;
 
@@ -141,21 +179,32 @@ static support_t *allocSupportStruct(int asid) {
         (0xBFFFF << VPNSHIFT) | (asid << ASIDSHIFT);
     sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryLO = DIRTYON;
 
-    /* ── Azzera gli stack degli handler ────────────────────────────────── */
-    char *p;
-    p = (char *)sup->sup_stackTLB;
-    for (int i = 0; i < sizeof(sup->sup_stackTLB); i++) p[i] = 0;
-    p = (char *)sup->sup_stackGen;
-    for (int i = 0; i < sizeof(sup->sup_stackGen); i++) p[i] = 0;
+    /* ── Calcolo dinamico degli Stack Pointer fisici in RAM ────────────── */
+    volatile unsigned int ram_top;
+    RAMTOP(ram_top);
+
+    /*
+     * L'ultimo frame (ram_top) è usato da test().
+     * Assegniamo 2 frame fisici univoci per ogni ASID (da 1 a 8) partendo dal penultimo.
+     * Poiché lo stack cresce verso il basso, il valore dello SP è la fine del frame.
+     *
+     * Esempio per ASID 1:
+     * tlb_sp = ram_top - 1 * PAGESIZE  (penultimo frame)
+     * gen_sp = ram_top - 2 * PAGESIZE  (terzultimo frame)
+     */
+    unsigned int tlb_sp = ram_top - ((asid * 2) - 1) * PAGESIZE;
+    unsigned int gen_sp = ram_top - (asid * 2) * PAGESIZE;
 
     /* ── Contesti eccezione ─────────────────────────────────────────────── */
     sup->sup_exceptContext[PGFAULTEXCEPT].pc       = (memaddr)pager;
     sup->sup_exceptContext[PGFAULTEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr = (memaddr)&sup->sup_stackTLB[499];
+    sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr = tlb_sp;
 
     sup->sup_exceptContext[GENERALEXCEPT].pc       = (memaddr)generalExceptionHandler;
     sup->sup_exceptContext[GENERALEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    sup->sup_exceptContext[GENERALEXCEPT].stackPtr = (memaddr)&sup->sup_stackGen[499];
+    sup->sup_exceptContext[GENERALEXCEPT].stackPtr = gen_sp;
+
+    // TLBCLR();
 
     return sup;
 }

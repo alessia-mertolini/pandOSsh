@@ -1,7 +1,4 @@
 #include "./headers/vmSupport.h"
-#include <uriscv/arch.h>
-#include <uriscv/liburiscv.h>
-// #include ".///print.h"
 
 //TODO controllare se 'swapPoolTable' e 'swapPoolSemaphore' devono essere static o no
 //TODO capire se sono estetiche le variabili qui
@@ -11,13 +8,16 @@ static swap_t swapPoolTable[POOLSIZE];
 //definizione del semaforo
 int swapPoolSemaphore;
 //frame corrente della page table da sostituire
-int currentFrame = 0;
+static int currentFrame = 0;
 
+static void updateTLB(pteEntry_t *pageTable) ;
 
-void enterAtomicSession() {
+extern int flashSem[DEVPERINT]; // importata da initProc.h
+
+static void enterAtomicSession() {
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
 }
-void exitAtomicSession() {
+static void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
 }
 
@@ -28,13 +28,14 @@ void releaseFramesOfProcess(int asid) {
             if (swapPoolTable[i].sw_pte != NULL) {
                 swapPoolTable[i].sw_pte->pte_entryLO = DIRTYON;
             }
+            enterAtomicSession();
+            updateTLB(swapPoolTable[i].sw_pte);
+            exitAtomicSession();
             swapPoolTable[i].sw_asid  = -1;
             swapPoolTable[i].sw_pageNo = -1;
             swapPoolTable[i].sw_pte   = NULL;
         }
     }
-    TLBCLR();
-    exitAtomicSession();
 }
 
 // Restituisce l'indirizzo fisico di un frame della Swap Pool
@@ -62,7 +63,7 @@ void initSwapStructures() {
   corretto per pte_entryLO, cioe' PFN << PFNSHIFT
   @return: aggiorna la pagetable e il tlb con la pagina e i flag passati
 */
-void updateTLB(pteEntry_t *pageTable) {
+static void updateTLB(pteEntry_t *pageTable) {
     // mi salvo il processo che ha causato il page fault
     unsigned int oldEntryHi = getENTRYHI();
     setENTRYHI(pageTable->pte_entryHI); // pagina vittima passata come parametro
@@ -81,14 +82,18 @@ void updateTLB(pteEntry_t *pageTable) {
 
 // update PageTable Entry
 // * physicalAddr deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
-void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
+static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
-    pageTable->pte_entryLO = physicalAddr | bitFlags;
+    pageTable->pte_entryLO = (physicalAddr & ~((memaddr)PAGESIZE - 1)) | bitFlags;
     updateTLB(pageTable); 
 }
 
 //algoritmo Round Robin per la sostituzione delle pagine
-void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
+static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
+    // Sanity check
+    if (currentFrame < 0 || currentFrame >= POOLSIZE) {
+        currentFrame = 0;  // reset di sicurezza
+    }
     // Prima cerca un frame libero
     for (int j = 0; j < POOLSIZE; j++) {
         if (swapPoolTable[j].sw_asid == -1) {
@@ -154,27 +159,6 @@ void pager() {
     state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
 
-    // ------ debug -------------
-    // ESTREMIAMO IL PC PER VEDERE DOVE CRASHA
-    unsigned int fault_pc = exceptionState->pc_epc;
-    char buf[2];
-    buf[0] = support->sup_asid + '0';
-    buf[1] = '\0';
-    ////print("\n[CRITICAL-PAGER] Pager invocato da ASID=");
-    ////print(buf);
-    ////print("\n[CRITICAL-PAGER] Indirizzo istruzione (PC) che ha causato il fault = 0x");
-    // ... stampa fault_pc in esadecimale (puoi usare la stessa logica che hai usato per pte_entryLO) ...
-    char buf3[12];
-    // stampa in esadecimale manuale
-    for (int k = 7; k >= 0; k--) {
-        int nibble = (fault_pc >> (k * 4)) & 0xF;
-        buf3[7 - k] = nibble < 10 ? '0' + nibble : 'A' + nibble - 10;
-    }
-    buf3[8] = '\n';
-    buf3[9] = '\0';
-    ////print(buf3);
-    ////print("\n");
-
     //TODO capire se la maschera applicata è corretta - cosa da debug
     //ricaviamo il codice di eccezione
     //unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
@@ -213,7 +197,7 @@ void pager() {
             int oldProcAsid = swapPoolTable[i].sw_asid;
             int oldProcVpn = swapPoolTable[i].sw_pageNo; //la pagina che verrà sostituita da "p"
             pteEntry_t *oldProcPte = swapPoolTable[i].sw_pte;
-            
+
             enterAtomicSession();
 
             oldProcPte->pte_entryLO &= ~VALIDON; //marchiamo il bit del frame contenuto nella page table come invalido 8a)
@@ -234,12 +218,6 @@ void pager() {
         }
 
         //9
-        ////print("[DEBUG] Pager: Leggo dal Flash Device: ");
-        char devNo[2];
-        devNo[0] = (support->sup_asid - 1) + '0';
-        devNo[1] = '\0';
-        ////print(devNo);
-        ////print("\n");
         int readStatus = readOrWriteToFlash(support->sup_asid, p, i, FLASHREAD);
         if (readStatus != OK) {
             /* Tiene ancora swapPoolSemaphore: programTrapSupportHandler lo rilascia. */
@@ -260,20 +238,9 @@ void pager() {
         updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
         exitAtomicSession();
         unsigned int entryLO = support->sup_privatePgTbl[p].pte_entryLO;
-        char buf3[12];
-        // stampa in esadecimale manuale
-        for (int k = 7; k >= 0; k--) {
-            int nibble = (entryLO >> (k * 4)) & 0xF;
-            buf3[7 - k] = nibble < 10 ? '0' + nibble : 'A' + nibble - 10;
-        }
-        buf3[8] = '\n';
-        buf3[9] = '\0';
-        ////print("[PTE] pte_entryLO=0x");
-        ////print(buf3);
 
         //13
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
-
         LDST(exceptionState);
     }
     else { // TLB-Modification exception
@@ -283,7 +250,7 @@ void pager() {
 }
 
 // * NON UTILIZZATA
-void initPageTable(support_t *s) {
+static void initPageTable(support_t *s) {
     for(int i = 0; i < USERPGTBLSIZE; i++) {
         volatile unsigned int vpn;
 

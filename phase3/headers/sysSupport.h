@@ -9,14 +9,14 @@
  *             SYSCALL Exception Handler (Sezione 7).
  */
 
-#include <uriscv/liburiscv.h>
-#include "../../headers/const.h"
-#include "./costantiNopoli.h"
-#include "../testers/h/tconst.h"
-#include "../../headers/types.h"
+ #include "./costantiNopoli.h"
+ #include "../testers/h/tconst.h"
 
-extern int swapPoolSemaphore;
+ #include "../../phase2/headers/constants.h" // usiamo solo cause_exccode
 
+#include "./initProc.h"
+ 
+ #include <uriscv/liburiscv.h>
 /*
  * generalExceptionHandler  (Sezione 6)
  *
@@ -27,31 +27,34 @@ extern int swapPoolSemaphore;
  */
 void generalExceptionHandler(void);
 
-/*
- * syscallExceptionHandler  (Sezione 7)
- *
- * Gestisce SYS2, SYS4, SYS5, SYS6.
- * Parametro: Support Structure del processo corrente.
- * Non ritorna mai.
- */
-void syscallExceptionHandler(support_t *sup);
+// /*
+//  * syscallExceptionHandler  (Sezione 7)
+//  *
+//  * Gestisce SYS2, SYS4, SYS5, SYS6.
+//  * Parametro: Support Structure del processo corrente.
+//  * Non ritorna mai.
+//  */
+// void syscallExceptionHandler(support_t *sup);
 
-/*
- * transmitChar  (usata da SYS4)
- *
- * Trasmette il carattere c sul terminale devNo tramite NSYS5.
- * Restituisce la status word del device.
- */
-int transmitChar(int devNo, char c);
+// /*
+//  * transmitChar  (usata da SYS4)
+//  *
+//  * Trasmette il carattere c sul terminale devNo tramite NSYS5.
+//  * Restituisce la status word del device.
+//  */
+// int transmitChar(int devNo, char c);
 
-/*
- * receiveChar (usata da SYS5)
- *
- * Riceve un carattere dal terminale devNo tramite NSYS5.
- * Restituisce la status word del device (stato in byte basso,
- * carattere in byte successivo).
- */
-int receiveChar(int devNo);
+// /*
+//  * receiveChar (usata da SYS5)
+//  *
+//  * Riceve un carattere dal terminale devNo tramite NSYS5.
+//  * Restituisce la status word del device (stato in byte basso,
+//  * carattere in byte successivo).
+//  */
+// int receiveChar(int devNo);
+
+#define TERM_REG_ADDR(devNo) \
+        ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
 
 /*
  * programTrapSupportHandler  (Sezione 8)
@@ -62,8 +65,5 @@ int receiveChar(int devNo);
  * Non ritorna mai.
  */
 void programTrapSupportHandler(support_t *sup, int holdingMutex);
-
-#define TERM_REG_ADDR(devNo) \
-        ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
 
 #endif /* SYSSUPPORT_H_INCLUDED */

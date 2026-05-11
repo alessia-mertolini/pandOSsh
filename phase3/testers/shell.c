@@ -9,10 +9,11 @@
  *   - Termina con "exit" (SYS2 / TERMINATE)
  */
 
-#include <uriscv/liburiscv.h>
-#include "h/tconst.h"
-#include "h/print.h"
-#include <uriscv/const.h>
+ #include "h/tconst.h"
+ #include "h/print.h"
+ #include "../../headers/const.h"
+ #include <uriscv/const.h>
+ #include <uriscv/liburiscv.h>
 
 /* --------------------------------------------------------------------------
  * Mappa statica: nome programma -> ASID
@@ -46,14 +47,14 @@ static int str_cmp(const char *a, const char *b) {
         if (*a != *b) return FALSE;
         a++; b++;
     }
-    return (*a == '\0' && *b == '\0');
+    return (*a == EOS && *b == EOS);
 }
 
 /* Rimuove il newline finale letto da ReadTerminal */
 static void rm_newline(char *buf) {
     while (*buf) {
         if (*buf == '\n' || *buf == '\r') {
-            *buf = '\0';
+            *buf = EOS;
             return;
         }
         buf++;
@@ -61,25 +62,49 @@ static void rm_newline(char *buf) {
 }
 
 int main() {
-    char input_buf[128];
+    char input_buf[MAXSTRLENG];
     int  nread, i, found;
 
     print(WRITETERMINAL, "[OK] PandOSsh shell ready. Type a program name or 'exit'.\n");
+
+
+    // Tentativo di rallentare lo spam di chiamate ai programmi
+    // for(volatile int i = 0; i < 1000; i++) {
+    //     SYSCALL(EXECUTE, tests[0].asid, 0, 0);
+    //     for (int i = 0; i < 1000; i++) {;}
+    //     SYSCALL(EXECUTE, tests[2].asid, 0, 0);
+    //     for (int i = 0; i < 1000; i++) {;}
+    //     SYSCALL(EXECUTE, tests[3].asid, 0, 0);
+    //     for (int i = 0; i < 1000; i++) {;}
+    //     SYSCALL(EXECUTE, tests[4].asid, 0, 0);
+    //     for (int i = 0; i < 1000; i++) {;}
+    //     SYSCALL(EXECUTE, tests[5].asid, 0, 0);
+    //     for (int i = 0; i < 1000; i++) {;}
+    // }
+    // print(WRITETERMINAL, "Stress test completato!\n");
+
 
     while (1) {
         /* Prompt */
         print(WRITETERMINAL, "> ");
 
         /* SYS5: ReadTerminal - legge una riga da tastiera */
-        nread = SYSCALL(READTERMINAL, (int)input_buf, 0, 0);
+        nread = SYSCALL(READTERMINAL, (int)&input_buf[0], 0, 0);
 
         if (nread < 0) {
             /* Errore di lettura: termina */
             print(WRITETERMINAL, "ERROR: ReadTerminal failed\n");
-            SYSCALL(TERMINATE, 0, 0, 0);
+            continue;
+        }
+
+        if (nread < 128) {  // protezione bounds
+            input_buf[nread] = EOS;
+        } else if (nread >= 128) {
+            input_buf[127] = EOS;  // tronca
         }
 
         /* Rimuove il '\n' finale inserito dal terminale */
+        // input_buf[nread] = EOS;
         rm_newline(input_buf);
 
         /* Comando "exit": termina la shell */
@@ -92,25 +117,10 @@ int main() {
         /* Ricerca nella mappa statica */
         found = 0;
 
-        // Tentativo di rallentare lo spam di chiamate ai programmi
-        for(int i = 0; i < 1000; i++) {
-            SYSCALL(EXECUTE, tests[0].asid, 0, 0);
-            // for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[2].asid, 0, 0);
-            // for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[3].asid, 0, 0);
-            // for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[4].asid, 0, 0);
-            // for (int i = 0; i < 500; i++) {;}
-            SYSCALL(EXECUTE, tests[5].asid, 0, 0);
-            // for (int i = 0; i < 500; i++) {;}
-        }
-        print(WRITETERMINAL, "Stress test completato!\n");
-
-        // for (i = 0; i < MAX_PROGS; i++) {
-        //     if (str_cmp(input_buf, tests[i].name)) {
-        //         found = 1;
-
+        
+        for (i = 0; i < MAX_PROGS; i++) {
+            if (str_cmp(input_buf, tests[i].name)) {
+                found = 1;
 
         //         /* SYS6: Execute - crea il processo figlio e attende */
         //         SYSCALL(EXECUTE, tests[i].asid, 0, 0);
