@@ -10,6 +10,8 @@ int swapPoolSemaphore;
 //frame corrente della page table da sostituire
 static int currentFrame = 0;
 
+static void updateTLB(pteEntry_t *pageTable) ;
+
 extern int flashSem[DEVPERINT]; // importata da initProc.h
 
 static void enterAtomicSession() {
@@ -25,16 +27,18 @@ void releaseFramesOfProcess(int asid) {
             if (swapPoolTable[i].sw_pte != NULL) {
                 swapPoolTable[i].sw_pte->pte_entryLO &= ~VALIDON;
             }
+            enterAtomicSession();
+            updateTLB(swapPoolTable[i].sw_pte);
+            exitAtomicSession();
             swapPoolTable[i].sw_asid  = -1;
             swapPoolTable[i].sw_pageNo = -1;
             swapPoolTable[i].sw_pte   = NULL;
         }
     }
-    TLBCLR();
 }
 
 // Restituisce l'indirizzo fisico di un frame della Swap Pool
-static memaddr frameAddressFunction(int frameIdx) {
+memaddr frameAddressFunction(int frameIdx) {
     return (memaddr)(SWAP_POOL_START_ADDR + frameIdx * PAGESIZE);
 }
 
@@ -85,6 +89,10 @@ static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int b
 
 //algoritmo Round Robin per la sostituzione delle pagine
 static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
+    // Sanity check
+    if (currentFrame < 0 || currentFrame >= POOLSIZE) {
+        currentFrame = 0;  // reset di sicurezza
+    }
     // Prima cerca un frame libero
     for (int j = 0; j < POOLSIZE; j++) {
         if (swapPoolTable[j].sw_asid == -1) {
@@ -114,7 +122,7 @@ static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
     vpn e' un numero del tipo 0x80000...0xbffff mentre qua vogliamo un pageNo ovvero un numero tipo 0...31
 */
 //p = page number e frameNumber = i
-static int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
+int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
     unsigned int frameAddress = frameAddressFunction(frameNumber);
     // Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
     int devNo = asid - 1;
@@ -188,7 +196,7 @@ void pager() {
             int oldProcAsid = swapPoolTable[i].sw_asid;
             int oldProcVpn = swapPoolTable[i].sw_pageNo; //la pagina che verrà sostituita da "p"
             pteEntry_t *oldProcPte = swapPoolTable[i].sw_pte;
-            
+
             enterAtomicSession();
 
             oldProcPte->pte_entryLO &= ~VALIDON; //marchiamo il bit del frame contenuto nella page table come invalido 8a)
@@ -232,7 +240,6 @@ void pager() {
 
         //13
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
-
         LDST(exceptionState);
     }
     else { // TLB-Modification exception

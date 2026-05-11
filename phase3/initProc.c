@@ -32,6 +32,8 @@
 #include "./headers/initProc.h"
 #include "headers/vmSupport.h"
 
+#include <uriscv/liburiscv.h>
+
 extern void initSwapStructures(); // importata da vmSupport.h
 
 // ----- Variabili esportate -------------
@@ -46,8 +48,6 @@ int  shellSemaphore;   /* semaforo per i processi iniziati dalla shell */
 // Array dei semafori dei device - 8 flash device
 int flashSem[DEVPERINT];
 
-int procGoneSemaphore;
-
 // -------------------------------
 
 /* Pool statico di Support Structure, una per ogni possibile U-proc. */
@@ -58,7 +58,7 @@ static support_t *freeList = NULL;
 
 
 // ---------- Prototipi esportati ---------
-void launchUProc(int asid); 
+support_t* launchUProc(int asid); 
 void deallocSupportStruct(support_t *sup);
 
 // ----------- Prototipi locali ------------
@@ -79,7 +79,6 @@ void test() {
     // processes
     masterSemaphore = 0;
     shellSemaphore = 0;
-    procGoneSemaphore = 0;
 
     // Popola la free list con ASID 2-8
     for (int i = UPROCMAX - 1; i >= 1; i--) {
@@ -97,6 +96,7 @@ void test() {
 // Aggiunge una support structure alla free list
 void deallocSupportStruct(support_t *sup) {
     sup->s_list.next = (struct list_head *)freeList;
+    sup->sup_asid = -1;
     freeList = sup;
 }
 
@@ -111,7 +111,7 @@ static support_t *allocFromFreeList(void) {
 /* -----------------------------------------------------------------------
 * launchUProc() - Crea e dispatcha un U-proc tramite NSYS1 (CREATEPROCESS)
 * ----------------------------------------------------------------------- */
-void launchUProc(int asid) {
+support_t* launchUProc(int asid) {
     //stato del processore iniziale dell'user process iniziale
     state_t uprocState;
 
@@ -148,6 +148,8 @@ void launchUProc(int asid) {
         /* CREATEPROCESS fallito: situazione irrecuperabile */
         PANIC();
     }
+
+    return sup;
 }
 
 /* -----------------------------------------------------------------------
@@ -201,6 +203,8 @@ static support_t *allocSupportStruct(int asid) {
     sup->sup_exceptContext[GENERALEXCEPT].pc       = (memaddr)generalExceptionHandler;
     sup->sup_exceptContext[GENERALEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     sup->sup_exceptContext[GENERALEXCEPT].stackPtr = gen_sp;
+
+    // TLBCLR();
 
     return sup;
 }

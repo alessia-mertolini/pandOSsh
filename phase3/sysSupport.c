@@ -10,9 +10,14 @@
  */
 
 #include "./headers/sysSupport.h"
+#include "headers/initProc.h"
+#include <uriscv/liburiscv.h>
+
+#include "./print.h"
 
 extern void releaseFramesOfProcess(int asid); // importata da vmSupport.h
 extern int procGoneSemaphore;
+extern support_t supportStructPool[];
 
 // Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
 static int isShellProcess(support_t *sup) {
@@ -116,12 +121,12 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
-        deallocSupportStruct(sup);  // ← restituisce alla free list
-        SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
+        // deallocSupportStruct(sup);  // ← restituisce alla free list
+        // SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
 
-    TLBCLR();
+    // TLBCLR();
     
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
@@ -218,17 +223,21 @@ static void sys4WriteTerminal(support_t *sup) {
  *   errore I/O:  a0 = -(status word del device)
  */
 static void sys5ReadTerminal(support_t *sup) {
-     state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
-     char    *virtAddr   = (char *)savedState->reg_a1;
+    state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
+    char    *virtAddr   = (char *)savedState->reg_a1;
 
-     int devNo = SHELL_TERMINAL;
-     
-     /* Validazione indirizzo. */
-     if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
-        sys2Terminate(sup, 0);
-        /* non ritorna */
+      // DEBUG: se pc_epc è 0, qualcosa è andato storto prima
+    if (savedState->pc_epc == 0) {
+        PANIC();  // si ferma qui invece di crashare l'emulatore
     }
 
+    int devNo = SHELL_TERMINAL;
+    
+    /* Validazione indirizzo. */
+    if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
+    sys2Terminate(sup, 0);
+    /* non ritorna */
+    }
     
     int received = 0;
     SYSCALL(PASSEREN, (int)&readTerminalSemaphore, 0, 0);
@@ -294,13 +303,15 @@ static void sys6Execute(support_t *sup) {
     int safe_asid = 2 + ((requested_asid - 2) % (UPROCMAX - 1));
     
     /* Crea e lancia l'U-proc (initProc.c). */
-    launchUProc(safe_asid);
+    support_t *childSup = launchUProc(safe_asid);
     
     // Aspetta che il figlio sia davvero morto (TERMPROCESS completato)
-    SYSCALL(PASSEREN, (int)&procGoneSemaphore, 0, 0);
+    // SYSCALL(PASSEREN, (int)&procGoneSemaphore, 0, 0);
     /* Blocca la shell fino alla terminazione del figlio. */
     SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
     
+    deallocSupportStruct(childSup);
+
     /* Figlio terminato: riprende la shell. */
     savedState->reg_a0 = 0;
     savedState->pc_epc += WORDLEN;
@@ -316,6 +327,9 @@ static void sys6Execute(support_t *sup) {
  *   poi NSYS2 per terminare il processo.
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup, int holdingMutex) {
+    if (sup->sup_asid == SHELL_ASID) {
+        print("[TRAP] La Shell ha generato un Program Trap al rientro!\n");
+    }
     if (holdingMutex) {
         /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
         releaseFramesOfProcess(sup->sup_asid);
@@ -330,10 +344,12 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
-        deallocSupportStruct(sup);  // ← restituisce alla free list
-        SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
+        // deallocSupportStruct(sup);  // ← restituisce alla free list
+        // SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
+
+    // TLBCLR();
     
     SYSCALL(TERMPROCESS, 0, 0, 0);
     /* UNREACHABLE */

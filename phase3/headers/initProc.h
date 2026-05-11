@@ -12,7 +12,7 @@ extern int writeTerminalSemaphore;
 extern int readTerminalSemaphore;
 extern int flashSem[DEVPERINT];
 
-void launchUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
+support_t* launchUProc(int asid); /* crea e lancia un U-proc tramite NSYS1*/
 void deallocSupportStruct(support_t *sup);
 
 #endif
