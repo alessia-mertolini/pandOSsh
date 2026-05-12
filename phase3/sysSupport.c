@@ -286,21 +286,21 @@ static void sys6Execute(support_t *sup) {
     LDST(savedState);
 }
 
-/* =========================================================================
+/* -----------------------------------------------------------------------
  * programTrapSupportHandler  [Section 8]
  *   Termina il U-proc in modo ordinato.
  *   Se il processo detiene la mutua esclusione sulla Swap Pool,
- *   il chiamante deve rilasciarla PRIMA di invocare questa funzione.
+ *   il chiamante deve rilasciarla prima di invocare questa funzione.
  *   Esegue le stesse operazioni di SYS2: V sul semaforo master/shell,
  *   poi NSYS2 per terminare il processo.
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup, int holdingMutex) {
     if (holdingMutex) {
-        /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
+        // Il pager (chiamante) tiene già il mutex: rilascia i frame e poi fa V
         releaseFramesOfProcess(sup->sup_asid);
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
         } else {
-        /* Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi V. */
+        // Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi fai V
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
         releaseFramesOfProcess(sup->sup_asid);
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
@@ -372,7 +372,7 @@ static void syscallExceptionHandler(support_t *sup) {
             sys6Execute(sup);
             break;
         default:
-            /* SYSCALL non supportata: tratta come Program Trap. */
+            /* SYSCALL non supportata: trattato come Program Trap. */
             programTrapSupportHandler(sup, 0);
             break;
     }
