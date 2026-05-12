@@ -1,7 +1,5 @@
 #include "./headers/vmSupport.h"
 
-//TODO controllare se 'swapPoolTable' e 'swapPoolSemaphore' devono essere static o no
-//TODO capire se sono estetiche le variabili qui
 //definizione della swapPoolTable utilizzando le strutture definite in types.h
 //impostiamo la swapPoolTable come da specifiche
 static swap_t swapPoolTable[POOLSIZE];
@@ -14,9 +12,11 @@ static void updateTLB(pteEntry_t *pageTable) ;
 
 extern int flashSem[DEVPERINT]; // importata da initProc.h
 
+// Funzione che permette di entrare in sessione atomica disabilitando gli interrupt
 static void enterAtomicSession() {
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
 }
+// Antidoto della funzione soprastante
 static void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
 }
@@ -44,9 +44,10 @@ memaddr frameAddressFunction(int frameIdx) {
 
 void initSwapStructures() {
     // qui l'atomic session e' superflua perche' viene chiamata dal processo test
-    // quando e' l'unico processo presente (si puo' mettere comunque, non fa danno)
+    // quando e' l'unico processo presente
+    // tecnicamente si potrebbe inserire, ma non è necessaria
 
-    //semaforo pronto per accettare una P
+    //impostiamo il semaforo pronto per accettare una P
     swapPoolSemaphore = 1;
     for (int i = 0; i < POOLSIZE; i++) {
         swapPoolTable[i].sw_asid = -1;
@@ -93,7 +94,7 @@ static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
     if (currentFrame < 0 || currentFrame >= POOLSIZE) {
         currentFrame = 0;  // reset di sicurezza
     }
-    // Prima cerca un frame libero
+    // Prima cerca un frame libero - ottimizzazione
     for (int j = 0; j < POOLSIZE; j++) {
         if (swapPoolTable[j].sw_asid == -1) {
             *frameOut = j;
@@ -101,6 +102,7 @@ static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
             return;
         }
     }
+
     // Round-robin ma salta i frame del processo corrente
     int start = currentFrame;
     do {
@@ -112,7 +114,7 @@ static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
         }
     } while (currentFrame != start);
     
-    // Tutti i frame appartengono al processo corrente — usa FIFO normale
+    // Caso: tutti i frame appartengono al processo corrente viene usata FIFO normale
     *frameOut = currentFrame;
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
@@ -151,27 +153,23 @@ int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
     }
 }
 
-// page fault handler -> sezione 4.2 delle specifiche
 void pager() {
     // otteniamo il puntatore alla support structure del processo
     support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0,0,0);
     state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
 
-    //TODO capire se la maschera applicata è corretta - cosa da debug
-    //ricaviamo il codice di eccezione
-    //unsigned int excCode = (cause & GETEXECCODE) >> CAUSESHIFT;
+    //ricaviamo il codice tramite macro gia' precedentemente usata
     unsigned int excCode = CAUSE_EXCCODE(cause);
 
-    //TLBINVLDL := Load - TLBINVLDs := Store
     if (excCode >= 24 && excCode <= 28) {
         // Mutua esclusione sul semaforo della swapPool
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0,0);
 
-        /* 1. Estraiamo il VPN puro azzerando i 12 bit bassi */
+        //Estraiamo il VPN puro azzerando i 12 bit bassi
         unsigned int missing_vpn = (exceptionState->entry_hi & VPN_MASK) >> VPNSHIFT; // -> otteniamo qualcosa del tipo 0x80000...0xBFFFF
 
-        /* 2. Traduciamo il VPN nell'indice logico 'p' (da 0 a 31) */
+        //Traduciamo il VPN nell'indice logico 'p' (da 0 a 31)
         int p;
         if (missing_vpn == STACK_PAGE_VPN) {
             p = 31;
@@ -199,11 +197,12 @@ void pager() {
 
             enterAtomicSession();
 
-            oldProcPte->pte_entryLO &= ~VALIDON; //marchiamo il bit del frame contenuto nella page table come invalido 8a)
+            //8a)
+            oldProcPte->pte_entryLO &= ~VALIDON; //marchiamo il bit del frame contenuto nella page table come invalido
 
-            //versione DEBUG, facciamo un ripulisti della TLB, questa parte di codice dovrà essere raffinata cercando la pagina
-            //invece di ripulire, dobbiamo chiedere se la pagina è in TLB e ne caso rimuoverla perché "out of date"
-            updateTLB(oldProcPte); //8b)
+            //8b)
+            //dobbiamo chiedere se la pagina è in TLB e ne caso rimuoverla perché "out of date"
+            updateTLB(oldProcPte);
 
             exitAtomicSession();
 

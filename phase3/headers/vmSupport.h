@@ -27,7 +27,7 @@ void initSwapStructures();
  * Gestisce le eccezioni di tipo Page Fault (TLB-Invalid Load/Store),
  * si occupa di caricare in Swap Pool le pagine logiche mancanti dal
  * dispositivo flash del processo corrente, utilizzando
- * un algoritmo di rimpiazzamento RR
+ * un algoritmo di rimpiazzamento RoundRobin
  */
 void pager();
 
