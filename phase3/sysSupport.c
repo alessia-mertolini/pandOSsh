@@ -328,9 +328,6 @@ static void sys6Execute(support_t *sup) {
  *   poi NSYS2 per terminare il processo.
  * ========================================================================= */
 void programTrapSupportHandler(support_t *sup, int holdingMutex) {
-    if (sup->sup_asid == SHELL_ASID) {
-        print("[TRAP] La Shell ha generato un Program Trap al rientro!\n");
-    }
     if (holdingMutex) {
         /* Il chiamante (pager) tiene già il mutex: rilascia i frame e poi V. */
         releaseFramesOfProcess(sup->sup_asid);

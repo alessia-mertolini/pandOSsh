@@ -122,19 +122,19 @@ int main() {
             if (str_cmp(input_buf, tests[i].name)) {
                 found = 1;
 
-        //         /* SYS6: Execute - crea il processo figlio e attende */
-        //         SYSCALL(EXECUTE, tests[i].asid, 0, 0);
+                /* SYS6: Execute - crea il processo figlio e attende */
+                SYSCALL(EXECUTE, tests[i].asid, 0, 0);
 
-        //         /* Siamo tornati: il figlio è terminato */
-        //         print(WRITETERMINAL, "Program terminated.\n");
-        //         break;
-        //     }
-        // }
+                /* Siamo tornati: il figlio è terminato */
+                print(WRITETERMINAL, "Program terminated.\n");
+                break;
+            }
+        }
 
-        // if (!found) {
-        //     print(WRITETERMINAL, "Command not found: ");
-        //     print(WRITETERMINAL, input_buf);
-        //     print(WRITETERMINAL, "\n");
-        // }
+        if (!found) {
+            print(WRITETERMINAL, "Command not found: ");
+            print(WRITETERMINAL, input_buf);
+            print(WRITETERMINAL, "\n");
+        }
     }
 }

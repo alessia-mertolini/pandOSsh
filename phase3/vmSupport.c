@@ -22,7 +22,6 @@ static void exitAtomicSession() {
 }
 
 void releaseFramesOfProcess(int asid) {
-    enterAtomicSession(); 
     for (int i = 0; i < POOLSIZE; i++) {
         if (swapPoolTable[i].sw_asid == asid) {
             if (swapPoolTable[i].sw_pte != NULL) {
