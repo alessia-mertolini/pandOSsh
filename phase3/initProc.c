@@ -50,7 +50,7 @@ int flashSem[DEVPERINT];
 
 // -------------------------------
 
-/* Pool statico di Support Structure, una per ogni possibile U-proc. */
+// Pool statico di Support Structure, una per ogni possibile U-proc.
 support_t supportStructPool[UPROCMAX];
 
 // Lista delle support struct libere
@@ -66,9 +66,10 @@ static support_t *allocFromFreeList(void);
 static support_t *allocSupportStruct(int asid);
 
 void test() {
+    // Inizializzazione strutture di supporto
     initSwapStructures();
 
-    // init semafori device
+    // init semafori dei device
     for(int i = 0; i < DEVPERINT; i++) {
         flashSem[i] = 1;
     }
@@ -76,18 +77,19 @@ void test() {
     readTerminalSemaphore = 1;
     writeTerminalSemaphore = 1;
     
-    // processes
+    // semafori per la gestione dei processi
     masterSemaphore = 0;
     shellSemaphore = 0;
 
-    // Popola la free list con ASID 2-8
+    // Popolazione della free list con ASID 2-8
     for (int i = UPROCMAX - 1; i >= 1; i--) {
         deallocSupportStruct(&supportStructPool[i]);
     }
 
-    /* 4. Lancia la shell (ASID 1 per convenzione)*/
+    // lancio della shell
     launchUProc(1);
 
+    // P sul masterSemaphore; rimarra' bloccato qui fino a quando la shell non fara' exit
     SYSCALL(PASSEREN, (int)&masterSemaphore,0,0);
 
     SYSCALL(TERMPROCESS,0,0,0);
@@ -108,14 +110,12 @@ static support_t *allocFromFreeList(void) {
     return sup;
 }
 
-/* -----------------------------------------------------------------------
-* launchUProc() - Crea e dispatcha un U-proc tramite NSYS1 (CREATEPROCESS)
-* ----------------------------------------------------------------------- */
+
 support_t* launchUProc(int asid) {
     //stato del processore iniziale dell'user process iniziale
     state_t uprocState;
 
-    // AZZERAMENTO MANUALE PER RISOLVERE LA SPAZZATURA:
+    // azzeramento manuale per risolvere problemi di lettura di area di memoria garbage
     char *ptr = (char *)&uprocState;
     for (int i = 0; i < sizeof(state_t); i++) {
         ptr[i] = 0;
@@ -123,39 +123,40 @@ support_t* launchUProc(int asid) {
     
     support_t  *sup = allocSupportStruct(asid);
     
-    /* ── Stato iniziale del U-proc ──────────────────────────────────────── */
-    /* PC: inizio sezione .text degli U-proc (vedi linker script crtsi.o) */
+    // Stato iniziale del U-proc
+    // PC: inizio sezione .text degli U-proc
     uprocState.pc_epc  = UPROCSTARTADDR;
 
-    /* SP: cima della stack page nel kuseg */
+    // SP: cima della stack page nel kuseg
     uprocState.reg_sp  = USERSTACKTOP;
     
-    /* User mode, tutti gli interrupt abilitati, PLT abilitato */
-    uprocState.status  = MSTATUS_MPIE_MASK          /* interrupt abilitati al ritorno */
-    | MSTATUS_MIE_MASK;           /* interrupt globali on           */
-    /* MPP = 00 => user mode al ritorno da eccezione */
+    // User mode, tutti gli interrupt abilitati, PLT abilitato
+    uprocState.status  = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK; // interrupt abilitati          
 
-    /* Abilita il Local Timer del processore */
+    // Abilita il Local Timer del processore
     uprocState.mie = MIE_ALL;
 
-    /* ASID nel campo EntryHi: identifica lo spazio di indirizzamento */
+    // Set dell'ASID nel campo EntryHi
     uprocState.entry_hi = asid << ASIDSHIFT;
 
-    /* ── Crea il processo ───────────────────────────────────────────────── */
+    // Creazione del processo
     int pid = SYSCALL(CREATEPROCESS,(int)&uprocState, PROCESS_PRIO_LOW, (int)sup);
 
     if (pid < 0) {
-        /* CREATEPROCESS fallito: situazione irrecuperabile */
+        /* 
+            Situazione di errore che non dovrebbe essere raggiunta (caso di allocazione di piu' di 20 pcb)
+            Si tratta solo di un controllo aggiuntivo
+        */
         PANIC();
     }
 
     return sup;
 }
 
-/* -----------------------------------------------------------------------
+/* 
  * allocSupportStruct() - Restituisce la Support Structure per l'ASID dato
  * e la inizializza completamente.
- * ----------------------------------------------------------------------- */
+ */
 static support_t *allocSupportStruct(int asid) {
     support_t *sup;
     
@@ -169,17 +170,15 @@ static support_t *allocSupportStruct(int asid) {
 
     sup->sup_asid = asid;
 
-    /* ── Page Table: SEMPRE reinizializzata a V=0, D=1 ─────────────────── */
+    // Page Table: SEMPRE reinizializzata a V=0, D=1
     for (int i = 0; i < USERPGTBLSIZE - 1; i++) {
-        sup->sup_privatePgTbl[i].pte_entryHI =
-            ((0x80000 + i) << VPNSHIFT) | (asid << ASIDSHIFT);
+        sup->sup_privatePgTbl[i].pte_entryHI =((0x80000 + i) << VPNSHIFT) | (asid << ASIDSHIFT);
         sup->sup_privatePgTbl[i].pte_entryLO = DIRTYON;   /* D=1, V=0 */
     }
-    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryHI =
-        (0xBFFFF << VPNSHIFT) | (asid << ASIDSHIFT);
+    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryHI = (0xBFFFF << VPNSHIFT) | (asid << ASIDSHIFT);
     sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryLO = DIRTYON;
 
-    /* ── Calcolo dinamico degli Stack Pointer fisici in RAM ────────────── */
+    // Calcolo dinamico degli Stack Pointer fisici in RAM
     volatile unsigned int ram_top;
     RAMTOP(ram_top);
 
@@ -195,11 +194,13 @@ static support_t *allocSupportStruct(int asid) {
     unsigned int tlb_sp = ram_top - ((asid * 2) - 1) * PAGESIZE;
     unsigned int gen_sp = ram_top - (asid * 2) * PAGESIZE;
 
-    /* ── Contesti eccezione ─────────────────────────────────────────────── */
+    // Gestione delle eccezioni
+    // Page faults
     sup->sup_exceptContext[PGFAULTEXCEPT].pc       = (memaddr)pager;
     sup->sup_exceptContext[PGFAULTEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     sup->sup_exceptContext[PGFAULTEXCEPT].stackPtr = tlb_sp;
 
+    // General exceptions (syscall + program trap)
     sup->sup_exceptContext[GENERALEXCEPT].pc       = (memaddr)generalExceptionHandler;
     sup->sup_exceptContext[GENERALEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     sup->sup_exceptContext[GENERALEXCEPT].stackPtr = gen_sp;

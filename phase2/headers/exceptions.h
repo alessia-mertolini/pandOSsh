@@ -66,6 +66,10 @@ void programTrapHandler(void);
  * Esegue Pass Up or Die con indice PGFAULTEXCEPT*/
 void tlbExceptionHandler(void);
 
+/* Gestore dei page faults
+ * Trova la page table entry per la support struct nel BIOSDATAPAGE
+ * Chiamato dal Pass Up or Die con indice PGFAULTEXCEPT
+ */
 void uTLB_RefillHandler(void);
 
 #endif /* EXCEPTIONS_H_INCLUDED */

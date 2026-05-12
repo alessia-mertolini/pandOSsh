@@ -422,14 +422,10 @@ static int getSemaphoreIndex(int *commandAddr) {
 }
 
 // ------------ phase 3 ------------------------
-// will locate the correct page table entry in some support level data structure
+// function that locates the correct page table entry in some support level data structure
 void uTLB_RefillHandler() { // -> cache miss
     state_t *savedState = (state_t *) BIOSDATAPAGE;
     unsigned int faultEntryHi = savedState->entry_hi;
-
-    // if (savedState->pc_epc == 0) HALT();  // ← già ce l'avete
-    // if (savedState->reg_sp == 0) HALT();  // ← aggiungete questo
-    // if (savedState->reg_ra == 0) HALT();  // ← e questo
 
     // con la maschera isoliamo il numero della pagina (prime 5 posizioni esadecimali)
     // per ottenere il corretto vpn shiftiamo poi a dx di 12 bit (ovvero 3 posizioni esadecimali)
@@ -456,10 +452,10 @@ void uTLB_RefillHandler() { // -> cache miss
     
     pteEntry_t *pageTable = &(currentProcess->p_supportStruct->sup_privatePgTbl[p]);
 
-    // 3. Write this Page Table entry into the TLB
+    // Write this Page Table entry into the TLB
     setENTRYHI(pageTable->pte_entryHI);
     setENTRYLO(pageTable->pte_entryLO);
     TLBWR(); // scrive in uno slot random del TLB
-    // 4. Return control to the Current Process
+    // Return control to the Current Process
     LDST((state_t*) BIOSDATAPAGE);
 } 

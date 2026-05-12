@@ -53,4 +53,4 @@ void generalExceptionHandler(void);
  */
 void programTrapSupportHandler(support_t *sup, int holdingMutex);
 
-#endif /* SYSSUPPORT_H_INCLUDED */
+#endif

@@ -1,36 +1,43 @@
+#$Id: Makefile,v 1.2 2004/05/01 14:53:48 morsiani Exp morsiani $
+# Makefile for mipsel-linux
+#
 XT_PRG_PREFIX = riscv64-unknown-elf-
 CC = $(XT_PRG_PREFIX)gcc
 LD = $(XT_PRG_PREFIX)ld
+AS = $(XT_PRG_PREFIX)as
+OBJCOPY = $(XT_PRG_PREFIX)objcopy
+OBJDUMP = $(XT_PRG_PREFIX)objdump
 
-URISCV_DIR_PREFIX  = /usr/local
-URISCV_DATA_DIR    = $(URISCV_DIR_PREFIX)/share/uriscv
-URISCV_INCLUDE_DIR = /usr/include
-URISCV_LIB_DIR     = $(URISCV_DIR_PREFIX)/lib/uriscv
+# uRISCV-related paths
+URISCV_DIR_PREFIX = /usr
 
+URISCV_DATA_DIR = $(URISCV_DIR_PREFIX)/local/share/uriscv
+URISCV_INCLUDE_DIR = $(URISCV_DIR_PREFIX)/include
+URISCV_LIB_DIR = $(URISCV_DIR_PREFIX)/lib/uriscv
+
+TDEFS = test/print.h test/tconst.h $(URISCV_INCLUDE_DIR)/uriscv/liburiscv.e Makefile
+
+# CFLAGS = -ffreestanding -ansi -c -mips1 -mabi=32 -mfp32 -mno-gpopt -G 0 -I$(URISCV_INCLUDE_DIR) -std=gnu99 -fno-pic -mno-abicalls
 CFLAGS_LANG = -ffreestanding -static -c -nostdlib
-CFLAGS = $(CFLAGS_LANG) -I$(URISCV_INCLUDE_DIR) -Ih -Wall -O0 -march=rv32imafd -mabi=ilp32d
+CFLAGS = $(CFLAGS_LANG) -I$(URISCV_INCLUDE_DIR) -Wall -O0 -march=rv32imfd -mabi=ilp32d
+# -Wall
 
-LDAOUTFLAGS = -m elf32lriscv -G 0 -nostdlib -T $(URISCV_DATA_DIR)/uriscvaout.ldscript
+LDAOUTFLAGS = -G 0 -nostdlib -T $(URISCV_DATA_DIR)/uriscvaout.ldscript -march=rv32imfd -melf32lriscv
+LDCOREFLAGS = -G 0 -nostdlib -T $(URISCV_DATA_DIR)/uriscvcore.ldscript -march=rv32imfd -melf32lriscv
 
-EF   = uriscv-elf2uriscv
+# AS = mipsel-linux-gnu-as -KPIC
+
+EF = uriscv-elf2uriscv
 UDEV = uriscv-mkdev
 
+# main target
 all: shell.uriscv fibEight.uriscv echo.uriscv fibEleven.uriscv uname.uriscv calc.uriscv date.uriscv sl.uriscv
 
-crti.o: $(URISCV_DATA_DIR)/crti.S
-	$(CC) $(CFLAGS) $< -o $@
+%.o: %.c $(TDEFS)
+	$(CC) $(CFLAGS) $<
 
-liburiscv.o: $(URISCV_DATA_DIR)/liburiscv.S
-	$(CC) $(CFLAGS) $< -o $@
-
-print.o: print.c h/print.h
-	$(CC) $(CFLAGS) print.c -o print.o
-
-%.o: %.c h/print.h h/tconst.h
-	$(CC) $(CFLAGS) $< -o $@
-
-%.t: %.o print.o crti.o liburiscv.o
-	$(LD) $(LDAOUTFLAGS) crti.o $< print.o liburiscv.o -o $@
+%.t: %.o print.o $(URISCV_LIB_DIR)/crti.o
+	$(LD) $(LDAOUTFLAGS) $(URISCV_LIB_DIR)/crti.o $< print.o $(URISCV_LIB_DIR)/liburiscv.o -o $@
 
 %.t.aout.uriscv: %.t
 	$(EF) -a $<
@@ -40,3 +47,4 @@ print.o: print.c h/print.h
 
 clean:
 	rm -f *.o *.t *.uriscv
+
