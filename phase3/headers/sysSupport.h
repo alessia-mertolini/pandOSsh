@@ -9,52 +9,39 @@
  *             SYSCALL Exception Handler (Sezione 7).
  */
 
- #include "./costantiNopoli.h"
- #include "../testers/h/tconst.h"
+#include "./costantiNopoli.h"
+#include "../testers/h/tconst.h"
 
- #include "../../phase2/headers/constants.h" // usiamo solo cause_exccode
+#include "../../phase2/headers/constants.h" // usiamo solo cause_exccode
 
 #include "./initProc.h"
  
- #include <uriscv/liburiscv.h>
-/*
- * generalExceptionHandler  (Sezione 6)
+#include <uriscv/liburiscv.h>
+ 
+#define TERM_REG_ADDR(devNo) \
+         ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
+
+
+ /*
+ * generalExceptionHandler 
  *
- * Entry point per le eccezioni non-TLB passate su dal Nucleus.
- * Registrato in sup_exceptContext[GENERALEXCEPT].c_pc da initProc.c.
- * Smista verso syscallExceptionHandler o programTrapHandler.
+ * Entry point per tutte le eccezioni non-TLB passate su dal Nucleus
+ * al Support Level (Spec Phase 3 Sezione 6).
+ *
+ * Passi:
+ *   1. NSYS8 (GETSUPPORTPTR): recupera la Support Structure del processo.
+ *   2. Legge il Cause register da sup_exceptState[GENERALEXCEPT].
+ *   3. Smista:
+ *        excCode == SYSEXCEPTION (8) -> syscallExceptionHandler
+ *        altro                       -> programTrapSupportHandler (Grazia)
+ *
+ * Nota: i TLB exception (excCode 24-28) non arrivano qui; il Nucleus li
+ * smista al Pager tramite sup_exceptContext[PGFAULTEXCEPT] (Gabriele).
+ *
  * Non ritorna mai.
  */
 void generalExceptionHandler(void);
 
-// /*
-//  * syscallExceptionHandler  (Sezione 7)
-//  *
-//  * Gestisce SYS2, SYS4, SYS5, SYS6.
-//  * Parametro: Support Structure del processo corrente.
-//  * Non ritorna mai.
-//  */
-// void syscallExceptionHandler(support_t *sup);
-
-// /*
-//  * transmitChar  (usata da SYS4)
-//  *
-//  * Trasmette il carattere c sul terminale devNo tramite NSYS5.
-//  * Restituisce la status word del device.
-//  */
-// int transmitChar(int devNo, char c);
-
-// /*
-//  * receiveChar (usata da SYS5)
-//  *
-//  * Riceve un carattere dal terminale devNo tramite NSYS5.
-//  * Restituisce la status word del device (stato in byte basso,
-//  * carattere in byte successivo).
-//  */
-// int receiveChar(int devNo);
-
-#define TERM_REG_ADDR(devNo) \
-        ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
 
 /*
  * programTrapSupportHandler  (Sezione 8)

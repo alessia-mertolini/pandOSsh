@@ -1,19 +1,6 @@
-/*
- * sysSupport.c
- * Phase 3 - Level 4: Support Level
- *
- * NON implementa:
- *   - Program Trap handler (Sezione 8)  -> vmSupport.c
- *   - Pager / swap pool                 -> vmSupport.c
- *   - TLB-Refill handler                -> exceptions.c
- *   - launchUProc / initProc             -> initProc.c
- */
-
 #include "./headers/sysSupport.h"
 #include "headers/initProc.h"
 #include <uriscv/liburiscv.h>
-
-#include "./print.h"
 
 extern void releaseFramesOfProcess(int asid); // importata da vmSupport.h
 extern int procGoneSemaphore;
@@ -47,23 +34,13 @@ static void syscallExceptionHandler(support_t *sup);
  * Restituisce la status word: byte basso = stato, byte 1 = carattere eco.
  */
 static int transmitChar(int devNo, char c) {
-    // * modifica di debug
-    // termreg_t *termReg = TERM_REG_ADDR(devNo);
-    
-    // /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
-    // unsigned int command =
-    //     ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
-    
-    // return SYSCALL(DOIO, (int)&(termReg->transm_command), (int)command, 0);
-
     unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
     termreg_t *termReg = (termreg_t *)baseAddr;
     
-    /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. */
-    /*
-    Esempio: c -> 97 -> 0x61 -> 0x00000061
-    Shift: 0x00006100
-    Or: 0x00006102    
+    /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. 
+    *  Esempio: c -> 97 -> 0x61 -> 0x00000061
+    *   Shift: 0x00006100
+    *   Or: 0x00006102    
     */
     unsigned int command = ((unsigned int)(unsigned char)c << TERM_CHAR_SHIFT) | TRANSMITCHAR;
 
@@ -80,8 +57,6 @@ static int transmitChar(int devNo, char c) {
  * Restituisce la status word: byte basso = stato, byte 1 = carattere ricevuto.
  */
 static int receiveChar(int devNo) {
-    // termreg_t *termReg = TERM_REG_ADDR(devNo);
-
     unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
     termreg_t *termReg = (termreg_t *)baseAddr;
      
@@ -121,12 +96,8 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
     if (isShellProcess(sup)) { // process is shell
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
-        // deallocSupportStruct(sup);  // ← restituisce alla free list
-        // SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
-
-    // TLBCLR();
     
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
@@ -178,7 +149,6 @@ static void sys4WriteTerminal(support_t *sup) {
 
     SYSCALL(PASSEREN, (int)&writeTerminalSemaphore, 0, 0);
     for (i = 0; i < len; i++) {
-        // PUNTO CRITICO 1: Potrebbe scatenare un Page Fault!
         char c = str[i]; 
         
         int status = transmitChar(devNo, c);
@@ -226,7 +196,6 @@ static void sys5ReadTerminal(support_t *sup) {
     state_t *savedState = &sup->sup_exceptState[GENERALEXCEPT];
     char    *virtAddr   = (char *)savedState->reg_a1;
 
-      // DEBUG: se pc_epc è 0, qualcosa è andato storto prima
     if (savedState->pc_epc == 0) {
         PANIC();  // si ferma qui invece di crashare l'emulatore
     }
@@ -235,8 +204,8 @@ static void sys5ReadTerminal(support_t *sup) {
     
     /* Validazione indirizzo. */
     if ((unsigned int)virtAddr < KUSEG ||(unsigned int)virtAddr >= USERSTACKTOP) {
-    sys2Terminate(sup, 0);
-    /* non ritorna */
+        sys2Terminate(sup, 0);
+        /* non ritorna */
     }
     
     int received = 0;
@@ -274,7 +243,7 @@ static void sys5ReadTerminal(support_t *sup) {
 
 /* -----------------------------------------------------------------------
  * SYS6 - Execute (Sezione 7.4)
- * ----------------------------------------------------------------------- */
+----------------------------------------------------------------------- */
  
 /*
  * sys6Execute
@@ -305,8 +274,6 @@ static void sys6Execute(support_t *sup) {
     /* Crea e lancia l'U-proc (initProc.c). */
     support_t *childSup = launchUProc(safe_asid);
     
-    // Aspetta che il figlio sia davvero morto (TERMPROCESS completato)
-    // SYSCALL(PASSEREN, (int)&procGoneSemaphore, 0, 0);
     /* Blocca la shell fino alla terminazione del figlio. */
     SYSCALL(PASSEREN, (int)&shellSemaphore, 0, 0);
     
@@ -346,8 +313,6 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
         // SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
-
-    // TLBCLR();
     
     SYSCALL(TERMPROCESS, 0, 0, 0);
     /* UNREACHABLE */
@@ -357,24 +322,7 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
  * Sezione 6 - General Exception Handler
  * ----------------------------------------------------------------------- */
  
- /*
- * generalExceptionHandler
- *
- * Entry point per tutte le eccezioni non-TLB passate su dal Nucleus
- * al Support Level (Spec Phase 3 Sezione 6).
- *
- * Passi:
- *   1. NSYS8 (GETSUPPORTPTR): recupera la Support Structure del processo.
- *   2. Legge il Cause register da sup_exceptState[GENERALEXCEPT].
- *   3. Smista:
- *        excCode == SYSEXCEPTION (8) -> syscallExceptionHandler
- *        altro                       -> programTrapSupportHandler (Grazia)
- *
- * Nota: i TLB exception (excCode 24-28) non arrivano qui; il Nucleus li
- * smista al Pager tramite sup_exceptContext[PGFAULTEXCEPT] (Gabriele).
- *
- * Non ritorna mai.
- */
+
 void generalExceptionHandler(void) {
     /* Recupera la Support Structure tramite NSYS8. */
     support_t *sup = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);
