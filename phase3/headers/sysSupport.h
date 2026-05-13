@@ -7,7 +7,7 @@
 #include "./initProc.h"
 #include <uriscv/liburiscv.h>
 
-#define TERMREGADDR(devNo) (devreg_t*)(TERM0ADDR + (devNo * 0x10))
+#define TERMREGADDR(devNo) (termreg_t*)(TERM0ADDR + (devNo * 0x10))
 
 /* -----------------------------------------------------------------------
  * Sezione 6 - General Exception Handler
