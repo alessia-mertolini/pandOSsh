@@ -23,26 +23,6 @@
 #include <uriscv/const.h>
 
 //Prototipi funzioni di supporto
-//-------
-/* passUpOrDie
- * Chiamata da programTrapHandler e tlbExceptionHandler e sysCallHandler nel caso "Default"
- * Se il processo corrente non ha una Support Structure, il processo viene terminato come tutti i suoi dipendenti
- * Altrimenti: copia lo stato dell'eccezione nella Support Structure e trasferisce il controllo al Support Level (Pass Up)*/
-static void passUpOrDie(int exceptionType, state_t *savedState);
-
-/* terminateProcessTree – termina un sottoalbero di processi
- * Scorre tutti i figli di "root", li termina, poi termina "root" stesso. 
- * Aggiorna processCount e softBlockCount nel caso in cui il processo è bloccato
- * Non chiama lo Scheduler in quanto compito del chiamante*/
-static void terminateProcessTree(pcb_t *root);
-
-/* updateCPUTime – aggiorna p_time del processo corrente
- * Calcola il tempo trascorso dall'ultima volta che start_tod è stato
- * aggiornato poi, lo somma a currentProcess->p_time */
-static void updateCPUTime(void);
-
-/* getSemaphoreIndex – calcola l'indice nell'array deviceSemaphores */
-static int getSemaphoreIndex(int *commandAddr);
 
 /* Entry point per la gestione delle eccezioni.
  * Viene registrato nel Pass Up Vector durante l'inizializzazione del Nucleus
