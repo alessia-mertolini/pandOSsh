@@ -104,7 +104,7 @@ support_t* launchUProc(int asid) {
     uprocState.entry_hi = asid << ASIDSHIFT;
 
     // Creazione del processo
-    int pid = SYSCALL(CREATEPROCESS,(int)&uprocState, PROCESS_PRIO_LOW, (int)sup);
+    SYSCALL(CREATEPROCESS,(int)&uprocState, PROCESS_PRIO_LOW, (int)sup);
 
     return sup;
 }

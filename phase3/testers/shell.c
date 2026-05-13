@@ -49,7 +49,7 @@ int main() {
 
 
     // Tentativo di rallentare lo spam di chiamate ai programmi
-    for(volatile int i = 0; i < 500; i++) {
+    for(volatile int i = 0; i < 200; i++) {
         SYSCALL(EXECUTE, tests[0].asid, 0, 0);
         SYSCALL(EXECUTE, tests[2].asid, 0, 0);
         SYSCALL(EXECUTE, tests[3].asid, 0, 0);
