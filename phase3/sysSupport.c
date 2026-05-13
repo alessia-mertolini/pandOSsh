@@ -114,7 +114,9 @@ static void sys6Execute(support_t *sup);
 static void syscallExceptionHandler(support_t *sup);
 
 
+
 /* ----- IMPLEMENTAZIONI ----- */
+
 extern void releaseFramesOfProcess(int asid); // importata da vmSupport.h
 extern support_t supportStructPool[];
 
