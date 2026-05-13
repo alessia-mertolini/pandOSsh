@@ -6,7 +6,6 @@ build/
 *.pdf
 *.uriscv
 .vscode/
-.claude/
 .idea/
 headers/listx.h
 klog.c
