@@ -421,7 +421,7 @@ static int getSemaphoreIndex(int *commandAddr) {
     return semIdx;
 }
 
-// ------------ phase 3 ------------------------
+// ------------ PHASE 3 ------------------------
 // function that locates the correct page table entry in some support level data structure
 void uTLB_RefillHandler() { // -> cache miss
     state_t *savedState = (state_t *) BIOSDATAPAGE;

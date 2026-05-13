@@ -1,6 +1,6 @@
 #include "./headers/initProc.h"
 
-/* ----- Prototipi locali ----- */
+/* ----- PROTOTIPI ----- */
 
 static support_t *allocFromFreeList(void);
 static support_t *allocSupportStruct(int asid);
@@ -8,7 +8,7 @@ static support_t *allocSupportStruct(int asid);
 
 extern void initSwapStructures(); // importata da vmSupport.h
 
-
+/* ----- IMPLEMENTAZIONE ----- */
 // Semaforo per I/O su terminale
 int readTerminalSemaphore;
 int writeTerminalSemaphore;

@@ -48,9 +48,7 @@ static void pageReplacementAlgorithm(int *frameOut, int currentAsid);
 static int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command);
 
 
-
-
-
+/* ----- IMPLEMENTAZIONE ----- */
 // definizione della swapPoolTable utilizzando le strutture definite in types.h
 // impostiamo la swapPoolTable come da specifiche
 static swap_t swapPoolTable[POOLSIZE];

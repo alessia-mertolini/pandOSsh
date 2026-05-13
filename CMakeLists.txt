@@ -34,7 +34,6 @@ add_executable(MultiPandOS
     phase3/initProc.c
     phase3/sysSupport.c
     phase3/vmSupport.c
-    phase3/print.c
     ${URISCV_SRC}/crtso.S ${URISCV_SRC}/liburiscv.S)
 
 add_custom_target(
