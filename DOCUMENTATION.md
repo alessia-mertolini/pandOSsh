@@ -1,5 +1,7 @@
 # Documentation pandOSsh
 
+## PHASE 2
+
 Guida alla lettura:
 Le costanti e le macro sono scritte in headers/const.h (quelle fornite in fase 1) e in phase2/headers/constants.h (quelle aggiunte in fase 2).
 
@@ -74,3 +76,53 @@ La terminazione dei processi avviene tramite la funzione `terminateProcessTree()
 
 ## Device registers
 Gestiti come da specifiche, si vede una loro gestione in `getSemaphoreIndex` la quale serve a calcolare l'indice del semaforo corrispondente ad un certo indirizzo dato.
+
+## PHASE 3
+### exception.c - phase 3
+`utlbRefillHandler` seppur si riferisce a fase 3 viene scritta in `exception.c` in quanto fa da ponte tra fase 2 e fase 3.  
+Sostanzialmente cio' viene fatto in quanto funzione `utlbRefillHandler` necessita di conoscere il current process.
+
+### initProc.c
+In questo file .c viene implementata una delle ottimizzazioni consigliate. In particolare, la funzionalita' dekll'allocazione e deallocazione della  
+`supportStructPool`, invece del precedente array statico. `freeList` invece viene utilizato con lista della support struct libere.
+Questo meccanismo viene compleatato tramite le funzioni `allocFromFreeList`, `allocSupportStruct` e `deallocSupportStruct`.
+
+La modifica piu' interessante per questa parte e' l'allocazione degli spazio degli U-proc direttamente dalla RAM.
+Dunque, invece di utilizzare i campi della support struct per assegnare i gestori delle eccezioni, vengono prelevati direttamente dall RAM effettuando un calcolo utilizzando l'ASID del processo e la `PAGESIZE` (sia per il `generalExcept` che per il `page fault except`).  
+Come da specifiche, gli spazi dedicati in RAM sono direttamente sotto a `RAMTOP`, evitando l'utlimo frame.
+
+L'inzializzazione delle pagine avviene sempre con dirty bit on, quindi - write enabled.
+
+### vmSupport.h
+in `vmSupport.h` viene incluso `"../../phase2/headers/constants.h"`. Questo include viene fatto solo per utilizzare le costanti `STACK_PAGE_VPN` e `KUSEG_VPN` e per non ridefinirle un'altra volta.  
+Tali constanti vengono utilizzate sia in fase 2 (`utlbRefillHandler`) che in fase 3, ma si riferiscono sempre alla gestione della memoria virtuale.
+
+`SWAP_POOL_START_ADDR` e' una costante definitia come da specifiche.
+
+### vmSupport.c
+Le funzioni `enterAtomicSession` e `exitAtomicSession` sono funzioni molto semplici che permettono reciprocamente di entrare in sessione atomica (disabilitando gli interrupt) ed usicre dalla sessione atomica (abilitando gli interrupt). Seppur molto semplici queste funzioni migliorano la leggibilita' del codice.
+
+`releaseFrameOfProcess` e' una funzione che implementa l'ottimizzazione consigliata. Tale funzione viene utilizzata in `sysSupport.c` in `sys2Terminate` e `programTrapSupportHandler`. Prima di terminare un processo, tutti i iframe occupati sono rimanrcati come non occupati, eliminando cosi' scritture estranee e non autorizzate nel backing store.
+
+`updateTLB` e' la prima ottimizzazione che prevede di migliorare la gestione del `TLB`, passando dall'utilizzo della macro `TLBCLR()` all'utilizzo combinato delle macro `TLBP()` e `TLBWI()` che permettono una gestione migliore e piu' accurata della TLB evitando di ripulire ad ogni comando la TLB rischiando di portare il sistema operativo in trashing.
+
+`pageReplacementAlgorithm` e' stato significativamente migliorato. Senza ottimizzazione l'algoritmo non cerca un frame libero, ma ne estrae uno casuale usando l'algoritmo Round Robin. Con l'ottimizzazione prima si effettua un sanity check sul frame (evitando errori potenzialmente involuti), poi si ricerca un frame libero. Se non esistono frame liberi, allora si ritorna al vecchio algoritmo Round Robin evitando la sotituzione dei frame del processo corrente (evitando ancora una volta errori indesiderati).
+
+`CAUSE_EXCODE` e' una macro definita sempre in `"../../phase2/headers/constants.h"` e serve per prelevare il codice di eccezione. Anche qui non viene ridefinita per questioni di pulizia del codice
+
+### sysSupport.c
+E' interessante notare che `sys2Terminate` e `programTrapSupportHandler` sono identiche. L'unica cosa che cambia e' l'utilizzo in parti diverse del programma. La decisione di non accorpare queste due funzioni sotto un'unica funzione deriva dal fatto che le specifiche sottolineando queste due funzioni come diverse, seppur uguali. Per chiarezza e coerenza rispetto alle specifiche si e' deciso di mantenere questa separazione.
+
+Essenzialmente questo file implementa le syscall di fase 3 che vengono chiamate a livello utente. Queste syscall non sono altro che dei wrapper sulle syscall precedentemente definite in fase 2. Infine il `syscallExceptionHandler` e' l'analogo del `syscallHandler` definito in fase 2. 
+
+`TERMREGADRR` e' una macro che calcola il register address dato il device number. Restituisce un termreg_t*
+
+### shell.c
+Questo e' il programma che permette di interagire all'utente con la shell.  
+Ogni programma viene associato al suo asid tramite una mappa statica.
+Viene letto il comando tramite la `SYSCALL` `READTERINAL`, se il nome del programma esiste, allora il programma viene eseguito tramite la syscall `EXECUTE`, altrimenti viene stampato a schermo un `command not found`.  
+Con il comando `exit` la shell si chiude.
+
+### calc.c
+Questo e' un file tester che implementa una calcolatrice single digit che permette in input numeri negativi e positivi single digit e che permette le classiche operazioni, ovvero somma, sottrazione, prodotto e divisione.  
+Vengono implementate due funzioni per la conversione da stringa ad intero e da intero a stringa.

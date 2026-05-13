@@ -48,24 +48,30 @@ nel config_machine.json e' settato a `0x80000000`
 ## MultiPandOS - Phase 3
 
 ### Work Managment
-- ARCHITETTO DELLA MEMORIA VIRTUALE -> Gestione della virtual memory -> vmSupport.c -> *Gabriele*
+- vmSupport.c -> *Gabriele*
     - gestione della swap pool [section 4.1]
     - gestione dei page fault (pager) [section 4.2]
 
-- SPECIALISTA DELLA I/O E SWAP -> vmSupport.c -> *Grazia*
+- vmSupport.c -> *Grazia*
     - I/O sui dispositivi flash [section 5.1]
     - algoritmo di sostituzione delle pagine [section 5.4]
     - program trap handler [section 8]
 
-- persona 3 -> *Alessia*
+- vmSupport.c + exceptions.c-> *Alessia*
     - gestione del TLB refill [section 3]
     - gestione page table [section 2]
-    - aggiornamenti atomici [section 5.2+5.3]
+    - aggiornamenti atomici [section 5.2 + 5.3]
 
-- GESTORE DI SYSCALL E ECCEZIONI -> sysSupport.c -> *Mirko*
+- sysSupport.c -> *Mirko*
     - exception handler [section 6]
     - eccezioni e syscall [section 7]
 
-<!-- - COORDINATORE DI PROCESSI E USERLAND -> testers -> [section 9]
-    - file di test
-    - file di inizializzazione -->
+- testers -> [section 9]
+    - file di test:
+        - shell.c *Grazia* 
+        - calc.c *Gabriele*
+        - initProc.c *Alessia* + *Mirko* 
+
+- debug: *Grazia*, *Alessia*, *Gabriele*, *Mirko*
+
+[section *] := from the given spec file
