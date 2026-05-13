@@ -3,9 +3,11 @@
 
 #include "../../headers/const.h"
 #include "../../headers/types.h"
+#include "vmSupport.h"
+#include <uriscv/liburiscv.h>
 
-extern int  masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shell alla fine */
-extern int  shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
+extern int masterSemaphore;   /* P'ato da InstantiatorProcess, V'ato dalla shell alla fine */
+extern int shellSemaphore;    /* P'ato dalla shell in SYS6, V'ato dal figlio in SYS2*/
 extern int swapPoolSemaphore;
 
 extern int writeTerminalSemaphore;

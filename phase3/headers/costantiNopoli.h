@@ -13,5 +13,5 @@
 #define TERM_CHAR_SHIFT     8           /* shift per estrarre il carattere  */
 
 #define TERM0ADDR 0x10000254
-
+#define LAST_KUSEG_VPN 0x8001E
 #endif

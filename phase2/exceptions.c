@@ -47,6 +47,26 @@ static void getProcessID(state_t *savedState);
 /* Qusto servizio causa il processo chiamante a lasciare volontariamente la CPU*/
 static void yield(state_t *savedState);
 
+/* passUpOrDie
+ * Chiamata da programTrapHandler e tlbExceptionHandler e sysCallHandler nel caso "Default"
+ * Se il processo corrente non ha una Support Structure, il processo viene terminato come tutti i suoi dipendenti
+ * Altrimenti: copia lo stato dell'eccezione nella Support Structure e trasferisce il controllo al Support Level (Pass Up)*/
+static void passUpOrDie(int exceptionType, state_t *savedState);
+
+/* terminateProcessTree – termina un sottoalbero di processi
+ * Scorre tutti i figli di "root", li termina, poi termina "root" stesso. 
+ * Aggiorna processCount e softBlockCount nel caso in cui il processo è bloccato
+ * Non chiama lo Scheduler in quanto compito del chiamante*/
+static void terminateProcessTree(pcb_t *root);
+
+/* updateCPUTime – aggiorna p_time del processo corrente
+ * Calcola il tempo trascorso dall'ultima volta che start_tod è stato
+ * aggiornato poi, lo somma a currentProcess->p_time */
+static void updateCPUTime(void);
+
+/* getSemaphoreIndex – calcola l'indice nell'array deviceSemaphores */
+static int getSemaphoreIndex(int *commandAddr);
+
 // Funzione ausiliaria per la corretta compilazione da parte di GCC
 void *memcpy(void *dst, const void *src, unsigned int n) {
     unsigned char *d = (unsigned char *)dst;
@@ -421,7 +441,7 @@ static int getSemaphoreIndex(int *commandAddr) {
     return semIdx;
 }
 
-// ------------ phase 3 ------------------------
+// ------------ PHASE 3 ------------------------
 // function that locates the correct page table entry in some support level data structure
 void uTLB_RefillHandler() { // -> cache miss
     state_t *savedState = (state_t *) BIOSDATAPAGE;

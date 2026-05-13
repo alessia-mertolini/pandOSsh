@@ -1,30 +1,18 @@
 #ifndef SYSSUPPORT_H_INCLUDED
 #define SYSSUPPORT_H_INCLUDED
 
-/*
- * sysSupport.h
- * Dichiarazioni pubbliche di sysSupport.c (Phase 3 - Level 4).
- *
- * Competenza: General Exception Handler (Sezione 6) +
- *             SYSCALL Exception Handler (Sezione 7).
- */
-
 #include "./costantiNopoli.h"
 #include "../testers/h/tconst.h"
-
 #include "../../phase2/headers/constants.h" // usiamo solo cause_exccode
-
 #include "./initProc.h"
- 
 #include <uriscv/liburiscv.h>
- 
-#define TERM_REG_ADDR(devNo) \
-         ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
 
+#define TERMREGADDR(devNo) (termreg_t*)(TERM0ADDR + (devNo * 0x10))
 
- /*
- * generalExceptionHandler 
- *
+/* -----------------------------------------------------------------------
+ * Sezione 6 - General Exception Handler
+ * ----------------------------------------------------------------------- */
+/*
  * Entry point per tutte le eccezioni non-TLB passate su dal Nucleus
  * al Support Level (Spec Phase 3 Sezione 6).
  *
@@ -43,9 +31,10 @@
 void generalExceptionHandler(void);
 
 
-/*
- * programTrapSupportHandler  (Sezione 8)
- *
+/* -----------------------------------------------------------------------
+ * Sezione 8 - Programm Trap Support Handler
+ * ----------------------------------------------------------------------- */
+/**
  * Termina il processo in modo ordinato.
  * holdingMutex: 1 se il chiamante detiene già swapPoolSemaphore
  *               (es. path di errore nel pager), 0 altrimenti.
@@ -53,6 +42,6 @@ void generalExceptionHandler(void);
  */
 void programTrapSupportHandler(support_t *sup, int holdingMutex);
 
-static void syscallExceptionHandler();
+
 
 #endif

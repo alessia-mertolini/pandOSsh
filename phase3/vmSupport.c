@@ -1,22 +1,72 @@
 #include "./headers/vmSupport.h"
 
-//definizione della swapPoolTable utilizzando le strutture definite in types.h
-//impostiamo la swapPoolTable come da specifiche
-static swap_t swapPoolTable[POOLSIZE];
-//definizione del semaforo
-int swapPoolSemaphore;
-//frame corrente della page table da sostituire
-static int currentFrame = 0;
+/* ----- PROTOTIPI ----- */
 
-static void updateTLB(pteEntry_t *pageTable) ;
+// funzione che permette di entrare in sessione atomica
+static void enterAtomicSession();
+
+
+// funzione che permette di uscire dalla sessione atomica precedentemente iniziata
+static void exitAtomicSession();
+
+
+// Restituisce l'indirizzo fisico di un frame della Swap Pool
+static memaddr frameAddressFunction(int frameIdx);
+
+
+/*
+ * @param bitFlags: puo' essere VALIDON | DIRTYON | GLOBALON
+ * @param physicalAddr: indirizzo fisico del frame deve essere gia' nel formato
+ * corretto per pte_entryLO, cioe' PFN << PFNSHIFT
+ * @return: aggiorna la pagetable e il tlb con la pagina e i flag passati
+*/
+static void updateTLB(pteEntry_t *pageTable);
+
+
+/*
+ * update PageTable Entry 
+ * @param s: puntatore alla support_t del processo
+ * @param pageNo: il Virtual Page Number
+ * @param physicalAddr: l'indirizzo fisico calcolato per il frame; deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
+ * @param bitFlags: i flag da accendere (es. VALIDON | DIRTYON)
+*/
+static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags);
+
+
+// Algoritmo Round Robin per la sostituzione delle pagine
+static void pageReplacementAlgorithm(int *frameOut, int currentAsid);
+
+
+/*
+ * Scrive o legge il contenuto di un frame fisico (presente nella Swap Pool) nel blocco
+ * corrispondente del dispositivo Flash associato a un determinato processo.
+ * @param asid: asid del processo, usato per calcolare quale flash device usare
+ * @param pageNo: numero della pagina virtuale
+ * @param frameNumber: l'indice del frame nella Swap Pool da cui leggere i dati
+ *
+ * @return: restituisce 0 in caso di successo, 1 altrimenti
+ */
+static int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command);
+
+
+/* ----- IMPLEMENTAZIONE ----- */
+// definizione della swapPoolTable utilizzando le strutture definite in types.h
+// impostiamo la swapPoolTable come da specifiche
+static swap_t swapPoolTable[POOLSIZE];
+
+// definizione del semaforo
+int swapPoolSemaphore;
+
+// frame corrente della page table da sostituire
+static int currentFrame = 0;
 
 extern int flashSem[DEVPERINT]; // importata da initProc.h
 
-// Funzione che permette di entrare in sessione atomica disabilitando gli interrupt
+
 static void enterAtomicSession() {
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
 }
-// Antidoto della funzione soprastante
+
 static void exitAtomicSession() {
     setSTATUS(getSTATUS() | MSTATUS_MIE_MASK);
 }
@@ -37,16 +87,11 @@ void releaseFramesOfProcess(int asid) {
     }
 }
 
-// Restituisce l'indirizzo fisico di un frame della Swap Pool
 memaddr frameAddressFunction(int frameIdx) {
     return (memaddr)(SWAP_POOL_START_ADDR + frameIdx * PAGESIZE);
 }
 
 void initSwapStructures() {
-    // qui l'atomic session e' superflua perche' viene chiamata dal processo test
-    // quando e' l'unico processo presente
-    // tecnicamente si potrebbe inserire, ma non è necessaria
-
     //impostiamo il semaforo pronto per accettare una P
     swapPoolSemaphore = 1;
     for (int i = 0; i < POOLSIZE; i++) {
@@ -56,13 +101,7 @@ void initSwapStructures() {
     }
 }
 
-// * va chiamato in atomic session
-/*
-  @param bitFlags: puo' essere VALIDON | DIRTYON | GLOBALON
-  @param physicalAddr: indirizzo fisico del frame deve essere gia' nel formato
-  corretto per pte_entryLO, cioe' PFN << PFNSHIFT
-  @return: aggiorna la pagetable e il tlb con la pagina e i flag passati
-*/
+
 static void updateTLB(pteEntry_t *pageTable) {
     // mi salvo il processo che ha causato il page fault
     unsigned int oldEntryHi = getENTRYHI();
@@ -80,15 +119,13 @@ static void updateTLB(pteEntry_t *pageTable) {
     setENTRYHI(oldEntryHi);
 }
 
-// update PageTable Entry
-// * physicalAddr deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
+
 static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
     pageTable->pte_entryLO = physicalAddr | bitFlags;
     updateTLB(pageTable); 
 }
 
-//algoritmo Round Robin per la sostituzione delle pagine
 static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
     // Sanity check
     if (currentFrame < 0 || currentFrame >= POOLSIZE) {
@@ -119,11 +156,7 @@ static void pageReplacementAlgorithm(int *frameOut, int currentAsid) {
     currentFrame = (currentFrame + 1) % POOLSIZE;
 }
 
-/*
-    Commento per Gabbo: ho cambiato vpn in pageNo perche' si trattano effettivamente di due cose diverse
-    vpn e' un numero del tipo 0x80000...0xbffff mentre qua vogliamo un pageNo ovvero un numero tipo 0...31
-*/
-//p = page number e frameNumber = i
+
 int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
     unsigned int frameAddress = frameAddressFunction(frameNumber);
     // Asid va da 1 - 8, mentre i dispositivi vanno da 0 - 7
@@ -155,7 +188,7 @@ int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
 
 void pager() {
     // otteniamo il puntatore alla support structure del processo
-    support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0,0,0);
+    support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
     state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
 
@@ -164,7 +197,7 @@ void pager() {
 
     if (excCode >= 24 && excCode <= 28) {
         // Mutua esclusione sul semaforo della swapPool
-        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0,0);
+        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
 
         //Estraiamo il VPN puro azzerando i 12 bit bassi
         unsigned int missing_vpn = (exceptionState->entry_hi & VPN_MASK) >> VPNSHIFT; // -> otteniamo qualcosa del tipo 0x80000...0xBFFFF
@@ -173,12 +206,12 @@ void pager() {
         int p;
         if (missing_vpn == STACK_PAGE_VPN) {
             p = 31;
-        } else if (missing_vpn >= 0x80000 && missing_vpn <= 0x8001E) { 
-            p = (int)(missing_vpn - 0x80000); // Pagine di codice (0-30)
+        } else if (missing_vpn >= KUSEG_VPN && missing_vpn <= LAST_KUSEG_VPN) { 
+            p = (int)(missing_vpn - KUSEG_VPN); // Pagine di codice (0-30)
         } else {
             // ERRORE: Segmentation Fault!
             // Rilascia il semaforo prima di terminare
-            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
+            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
             programTrapSupportHandler(support, 0);
             return;
         }
@@ -224,16 +257,16 @@ void pager() {
         }
 
         //10
-        swapPoolTable[i].sw_asid = support -> sup_asid;
+        swapPoolTable[i].sw_asid = support->sup_asid;
         swapPoolTable[i].sw_pageNo = p; //memorizzazione del vpn
         //salvataggio di un puntatore diretto alla specifica Page Table Entry di quella pagina "p"
         //all'interno della pageTable del processo corrente
-        swapPoolTable[i].sw_pte = &(support -> sup_privatePgTbl[p]);
+        swapPoolTable[i].sw_pte = &(support->sup_privatePgTbl[p]);
 
         //11 + 12
         enterAtomicSession();
         unsigned int physicalAddr = frameAddressFunction(i);
-        updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
+        updatePTE(support, p, physicalAddr, VALIDON | DIRTYON);
         exitAtomicSession();
 
         //13
