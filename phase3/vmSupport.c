@@ -36,6 +36,7 @@ static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int b
 // Algoritmo Round Robin per la sostituzione delle pagine
 static void pageReplacementAlgorithm(int *frameOut, int currentAsid);
 
+
 /*
  * Scrive o legge il contenuto di un frame fisico (presente nella Swap Pool) nel blocco
  * corrispondente del dispositivo Flash associato a un determinato processo.
@@ -59,8 +60,8 @@ int swapPoolSemaphore;
 // frame corrente della page table da sostituire
 static int currentFrame = 0;
 
-
 extern int flashSem[DEVPERINT]; // importata da initProc.h
+
 
 static void enterAtomicSession() {
     setSTATUS(getSTATUS() & ~MSTATUS_MIE_MASK);
@@ -187,7 +188,7 @@ int readOrWriteToFlash(int asid, int pageNo, int frameNumber, int command) {
 
 void pager() {
     // otteniamo il puntatore alla support structure del processo
-    support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0,0,0);
+    support_t *support = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
     state_t *exceptionState = &(support -> sup_exceptState[PGFAULTEXCEPT]);
     unsigned int cause = exceptionState -> cause;
 
@@ -196,7 +197,7 @@ void pager() {
 
     if (excCode >= 24 && excCode <= 28) {
         // Mutua esclusione sul semaforo della swapPool
-        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0,0);
+        SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
 
         //Estraiamo il VPN puro azzerando i 12 bit bassi
         unsigned int missing_vpn = (exceptionState->entry_hi & VPN_MASK) >> VPNSHIFT; // -> otteniamo qualcosa del tipo 0x80000...0xBFFFF
@@ -205,12 +206,12 @@ void pager() {
         int p;
         if (missing_vpn == STACK_PAGE_VPN) {
             p = 31;
-        } else if (missing_vpn >= 0x80000 && missing_vpn <= 0x8001E) { 
-            p = (int)(missing_vpn - 0x80000); // Pagine di codice (0-30)
+        } else if (missing_vpn >= KUSEG_VPN && missing_vpn <= LAST_KUSEG_VPN) { 
+            p = (int)(missing_vpn - KUSEG_VPN); // Pagine di codice (0-30)
         } else {
             // ERRORE: Segmentation Fault!
             // Rilascia il semaforo prima di terminare
-            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
+            SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
             programTrapSupportHandler(support, 0);
             return;
         }
@@ -256,16 +257,16 @@ void pager() {
         }
 
         //10
-        swapPoolTable[i].sw_asid = support -> sup_asid;
+        swapPoolTable[i].sw_asid = support->sup_asid;
         swapPoolTable[i].sw_pageNo = p; //memorizzazione del vpn
         //salvataggio di un puntatore diretto alla specifica Page Table Entry di quella pagina "p"
         //all'interno della pageTable del processo corrente
-        swapPoolTable[i].sw_pte = &(support -> sup_privatePgTbl[p]);
+        swapPoolTable[i].sw_pte = &(support->sup_privatePgTbl[p]);
 
         //11 + 12
         enterAtomicSession();
         unsigned int physicalAddr = frameAddressFunction(i);
-        updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
+        updatePTE(support, p, physicalAddr, VALIDON | DIRTYON);
         exitAtomicSession();
 
         //13

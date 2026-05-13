@@ -6,10 +6,8 @@
 #include "../../phase2/headers/constants.h" // usiamo solo cause_exccode
 #include "./initProc.h"
 #include <uriscv/liburiscv.h>
- 
-#define TERM_REG_ADDR(devNo) \
-         ((termreg_t *)(START_DEVREG + ((IL_TERMINAL - 3) * 0x80) + ((devNo) * 0x10)))
 
+#define TERMREGADDR(devNo) (devreg_t*)(TERM0ADDR + (devNo * 0x10))
 
 /* -----------------------------------------------------------------------
  * Sezione 6 - General Exception Handler
@@ -43,5 +41,7 @@ void generalExceptionHandler(void);
  * Non ritorna mai.
  */
 void programTrapSupportHandler(support_t *sup, int holdingMutex);
+
+
 
 #endif

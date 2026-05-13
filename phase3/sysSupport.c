@@ -128,8 +128,7 @@ static int isShellProcess(support_t *sup) {
 
 
 static int transmitChar(int devNo, char c) {
-    unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
-    termreg_t *termReg = (termreg_t *)baseAddr;
+    termreg_t *termReg = TERMREGADDR(devNo);
     
     /* Costruisce il comando: byte alto = carattere, byte basso = TRANSMITCHAR. 
     *  Esempio: c -> 97 -> 0x61 -> 0x00000061
@@ -143,8 +142,7 @@ static int transmitChar(int devNo, char c) {
 
 
 static int receiveChar(int devNo) {
-    unsigned int baseAddr = TERM0ADDR + (devNo * 0x10);
-    termreg_t *termReg = (termreg_t *)baseAddr;
+    termreg_t *termReg = TERMREGADDR(devNo);
      
     return SYSCALL(DOIO, (int)&(termReg->recv_command), RECEIVECHAR, 0);
 }
@@ -174,7 +172,7 @@ static void sys2Terminate(support_t *sup, int holdingMutex) {
 
 static void sys4WriteTerminal(support_t *sup) {
     state_t *savedState = &(sup->sup_exceptState[GENERALEXCEPT]);
-    unsigned int virtAddr   = savedState->reg_a1; // primo carattere trasmesso
+    unsigned int virtAddr = savedState->reg_a1; // primo carattere trasmesso
     int len = (int) savedState->reg_a2;
     
     /* Il terminale della shell è il numero 0. */

@@ -106,22 +106,10 @@ support_t* launchUProc(int asid) {
     // Creazione del processo
     int pid = SYSCALL(CREATEPROCESS,(int)&uprocState, PROCESS_PRIO_LOW, (int)sup);
 
-    if (pid < 0) {
-        /* 
-            Situazione di errore che non dovrebbe essere raggiunta (caso di allocazione di piu' di 20 pcb)
-            Si tratta solo di un controllo aggiuntivo
-        */
-        PANIC();
-    }
-
     return sup;
 }
 
 
-//Funzione di inizializzazione delle strutture dati necessarie alla swap pool
-//'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'
-//inizializzazione dei campi della struct 'swap_t' utilizzata da 'swapPoolTable'
-void initSwapStructures();
 static void initPageTable(support_t *s) {
     for(int i = 0; i < USERPGTBLSIZE; i++) {
         volatile unsigned int vpn;
