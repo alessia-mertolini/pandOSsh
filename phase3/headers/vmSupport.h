@@ -12,15 +12,15 @@
 #include <uriscv/liburiscv.h>
 
 
-//utilizzato nel pager
+// utilizzato nel pager
 #define SWAP_POOL_START_ADDR (0x20000000 + (32 * PAGESIZE)) 
 
 // --------- Funzioni esportate --------
 void releaseFramesOfProcess(int asid);
 
-//Funzione di inizializzazione delle strutture dati necessarie alla swap pool
-//'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'
-//inizializzazione dei campi della struct 'swap_t' utilizzata da 'swapPoolTable'
+// Funzione di inizializzazione delle strutture dati necessarie alla swap pool
+// 'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'
+// inizializzazione dei campi della struct 'swap_t' utilizzata da 'swapPoolTable'
 void initSwapStructures();
 
 /**
