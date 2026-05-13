@@ -1,42 +1,13 @@
-// File coordinatore
-// Risiede la funzione TEST che funge da instantiator Process
-// E' compito di questa funzione:
-// inizializzare: SWAP POOL TABLE, SEMAPHORE POOL TABLE -> lo fa chimando initSwapStructs
-// oltre a fare anche altre cose
-
-/*
-    // * REVISIONE CODICE SECONDO SPECIFICHE
-    - Sezione 3 corretta
-    - Sezione 4.1 corretta
-    - Sezione 4.2 corretta
-    - Sezione 5.1 corretta ma teniamo d'occhio cmd
-    - Sezione 5.2 corretta (solo TLBCLR al momento)
-    - Sezione 5.3 corretta
-    - Sezione 5.4 corretta
-    - Sezione 6 corretta
-    - Sezione 7.1 corretta
-    - Sezione 7.2 corretta
-
-    - Sezione 9 corretta
-
-    - Sezione 10
-        - updateTLB optimized
-        - free frame of process optimized
-        - pageReplacementAlgorithm optimized
-        - allocazione tlb e exc. handler stack direttamente dalla RAM
-        - allocate/deallocate per le support struct
-
-    - Sezione 11 corretta
-*/
-
 #include "./headers/initProc.h"
-#include "headers/vmSupport.h"
 
-#include <uriscv/liburiscv.h>
+/* ----- Prototipi locali ----- */
+
+static support_t *allocFromFreeList(void);
+static support_t *allocSupportStruct(int asid);
+
 
 extern void initSwapStructures(); // importata da vmSupport.h
 
-// ----- Variabili esportate -------------
 
 // Semaforo per I/O su terminale
 int readTerminalSemaphore;
@@ -48,7 +19,6 @@ int  shellSemaphore;   /* semaforo per i processi iniziati dalla shell */
 // Array dei semafori dei device - 8 flash device
 int flashSem[DEVPERINT];
 
-// -------------------------------
 
 // Pool statico di Support Structure, una per ogni possibile U-proc.
 support_t supportStructPool[UPROCMAX];
@@ -56,14 +26,6 @@ support_t supportStructPool[UPROCMAX];
 // Lista delle support struct libere
 static support_t *freeList = NULL;
 
-
-// ---------- Prototipi esportati ---------
-support_t* launchUProc(int asid); 
-void deallocSupportStruct(support_t *sup);
-
-// ----------- Prototipi locali ------------
-static support_t *allocFromFreeList(void);
-static support_t *allocSupportStruct(int asid);
 
 void test() {
     // Inizializzazione strutture di supporto
@@ -95,12 +57,14 @@ void test() {
     SYSCALL(TERMPROCESS,0,0,0);
 }
 
+
 // Aggiunge una support structure alla free list
 void deallocSupportStruct(support_t *sup) {
     sup->s_list.next = (struct list_head *)freeList;
     sup->sup_asid = -1;
     freeList = sup;
 }
+
 
 // Preleva una support structure dalla free list
 static support_t *allocFromFreeList(void) {
@@ -153,6 +117,7 @@ support_t* launchUProc(int asid) {
     return sup;
 }
 
+
 //Funzione di inizializzazione delle strutture dati necessarie alla swap pool
 //'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'
 //inizializzazione dei campi della struct 'swap_t' utilizzata da 'swapPoolTable'
@@ -177,6 +142,7 @@ static void initPageTable(support_t *s) {
         s->sup_privatePgTbl[i].pte_entryLO = DIRTYON;
     }
 }
+
 
 /* 
  * allocSupportStruct() - Restituisce la Support Structure per l'ASID dato
