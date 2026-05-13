@@ -103,7 +103,6 @@ static void sys5ReadTerminal(support_t *sup);
 static void sys6Execute(support_t *sup);
 
 
-
 /* -----------------------------------------------------------------------
  * Sezione 7 - SYSCALL Exception Handler
  * ----------------------------------------------------------------------- */
