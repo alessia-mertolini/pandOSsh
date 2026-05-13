@@ -3,7 +3,6 @@
 #include <uriscv/liburiscv.h>
 
 extern void releaseFramesOfProcess(int asid); // importata da vmSupport.h
-extern int procGoneSemaphore;
 extern support_t supportStructPool[];
 
 // Ritorna 1 se il processo è la shell (ASID == SHELL_ASID).
@@ -299,7 +298,7 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
         // Il pager (chiamante) tiene già il mutex: rilascia i frame e poi fa V
         releaseFramesOfProcess(sup->sup_asid);
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0, 0);
-        } else {
+    } else {
         // Nessun mutex tenuto: acquisiscilo, rilascia i frame, poi fai V
         SYSCALL(PASSEREN, (int)&swapPoolSemaphore, 0, 0);
         releaseFramesOfProcess(sup->sup_asid);
@@ -310,7 +309,6 @@ void programTrapSupportHandler(support_t *sup, int holdingMutex) {
         SYSCALL(VERHOGEN, (int)&masterSemaphore, 0, 0);
     } else { // user process was started by shell
         // deallocSupportStruct(sup);  // ← restituisce alla free list
-        // SYSCALL(VERHOGEN, (int)&procGoneSemaphore, 0, 0);
         SYSCALL(VERHOGEN, (int)&shellSemaphore, 0, 0);
     }
     

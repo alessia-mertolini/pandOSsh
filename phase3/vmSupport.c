@@ -84,7 +84,7 @@ static void updateTLB(pteEntry_t *pageTable) {
 // * physicalAddr deve essere in formato 0x00000000 (indirizzo completo) non 0x00000 (PFN)
 static void updatePTE(support_t *s, int pageNo, unsigned int physicalAddr, int bitFlags) {
     pteEntry_t *pageTable = &(s->sup_privatePgTbl[pageNo]);
-    pageTable->pte_entryLO = (physicalAddr & ~((memaddr)PAGESIZE - 1)) | bitFlags;
+    pageTable->pte_entryLO = physicalAddr | bitFlags;
     updateTLB(pageTable); 
 }
 
@@ -235,7 +235,6 @@ void pager() {
         unsigned int physicalAddr = frameAddressFunction(i);
         updatePTE(support, p, physicalAddr, VALIDON|DIRTYON);
         exitAtomicSession();
-        unsigned int entryLO = support->sup_privatePgTbl[p].pte_entryLO;
 
         //13
         SYSCALL(VERHOGEN, (int)&swapPoolSemaphore, 0,0);
@@ -244,27 +243,5 @@ void pager() {
     else { // TLB-Modification exception
         programTrapSupportHandler(support, 0);
         return;
-    }
-}
-
-// * NON UTILIZZATA
-static void initPageTable(support_t *s) {
-    for(int i = 0; i < USERPGTBLSIZE; i++) {
-        volatile unsigned int vpn;
-
-
-        if(i == USERPGTBLSIZE - 1) { // per l'ultima pagina vi e' invece un registro preposto
-          vpn = STACK_PAGE_VPN;
-        } else { // per le prime 31 pagine e un semplice contatore da 1 a 31
-          vpn = KUSEG_VPN + i;
-        }
-
-        // ogni entryHI e' composta dai primi 20 bit per il numero vpn, che quindi shiftiamo a sx
-        // e dagli ultimi 3 per l'ASID, che quindi sommiamo per avere in fondo a destra come
-        // indirizzo del registro puntato dalla pageTable
-        s->sup_privatePgTbl[i].pte_entryHI = (vpn << VPNSHIFT) | (s->sup_asid << ASIDSHIFT);
-
-        // attiviamo solo D e G
-        s->sup_privatePgTbl[i].pte_entryLO = DIRTYON;
     }
 }

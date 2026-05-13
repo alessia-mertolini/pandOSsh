@@ -40,8 +40,6 @@ extern int swapPoolSemaphore;
 // //funzione che permette di uscire dalla sessione atomica precedentemente iniziata
 // void exitAtomicSession();
 
-// void initPageTable(support_t *s);
-
 // //Restituisce l'indirizzo fisico di un frame della Swap Pool
 // memaddr frameAddressFunction(int frameIdx);
 

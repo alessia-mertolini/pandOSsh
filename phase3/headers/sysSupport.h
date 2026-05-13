@@ -53,4 +53,6 @@ void generalExceptionHandler(void);
  */
 void programTrapSupportHandler(support_t *sup, int holdingMutex);
 
+static void syscallExceptionHandler();
+
 #endif

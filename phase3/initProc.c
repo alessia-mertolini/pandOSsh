@@ -153,6 +153,31 @@ support_t* launchUProc(int asid) {
     return sup;
 }
 
+//Funzione di inizializzazione delle strutture dati necessarie alla swap pool
+//'swapPoolSemaphore' viene inizializzato come da specifiche pronto per accettare una 'P'
+//inizializzazione dei campi della struct 'swap_t' utilizzata da 'swapPoolTable'
+void initSwapStructures();
+static void initPageTable(support_t *s) {
+    for(int i = 0; i < USERPGTBLSIZE; i++) {
+        volatile unsigned int vpn;
+
+
+        if(i == USERPGTBLSIZE - 1) { // per l'ultima pagina vi e' invece un registro preposto
+          vpn = STACK_PAGE_VPN;
+        } else { // per le prime 31 pagine e un semplice contatore da 1 a 31
+          vpn = KUSEG_VPN + i;
+        }
+
+        // ogni entryHI e' composta dai primi 20 bit per il numero vpn, che quindi shiftiamo a sx
+        // e dagli ultimi 3 per l'ASID, che quindi sommiamo per avere in fondo a destra come
+        // indirizzo del registro puntato dalla pageTable
+        s->sup_privatePgTbl[i].pte_entryHI = (vpn << VPNSHIFT) | (s->sup_asid << ASIDSHIFT);
+
+        // pagine sempre inizializzate in scrittura
+        s->sup_privatePgTbl[i].pte_entryLO = DIRTYON;
+    }
+}
+
 /* 
  * allocSupportStruct() - Restituisce la Support Structure per l'ASID dato
  * e la inizializza completamente.
@@ -170,13 +195,8 @@ static support_t *allocSupportStruct(int asid) {
 
     sup->sup_asid = asid;
 
-    // Page Table: SEMPRE reinizializzata a V=0, D=1
-    for (int i = 0; i < USERPGTBLSIZE - 1; i++) {
-        sup->sup_privatePgTbl[i].pte_entryHI =((0x80000 + i) << VPNSHIFT) | (asid << ASIDSHIFT);
-        sup->sup_privatePgTbl[i].pte_entryLO = DIRTYON;   /* D=1, V=0 */
-    }
-    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryHI = (0xBFFFF << VPNSHIFT) | (asid << ASIDSHIFT);
-    sup->sup_privatePgTbl[USERPGTBLSIZE - 1].pte_entryLO = DIRTYON;
+    // Inizializzazione Page Table
+    initPageTable(sup);
 
     // Calcolo dinamico degli Stack Pointer fisici in RAM
     volatile unsigned int ram_top;
@@ -205,7 +225,7 @@ static support_t *allocSupportStruct(int asid) {
     sup->sup_exceptContext[GENERALEXCEPT].status   = MSTATUS_MPIE_MASK | MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     sup->sup_exceptContext[GENERALEXCEPT].stackPtr = gen_sp;
 
-    // TLBCLR();
+    TLBCLR();
 
     return sup;
 }
